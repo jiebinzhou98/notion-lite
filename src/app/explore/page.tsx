@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
+import NoteCard from "@/components/ui/NoteCard"
 
 //setup note
 type Note = {
@@ -53,15 +54,8 @@ export default function ExplorePage(){
 
             <ul className="space-y-3">
                 {notes.map(note => (
-                    <li key={note.id} className="border rounded p-3 hover:shadow transition">
-                        <Link href={`/notes/${note.id}`}>
-                            <div>
-                                <h2 className="font-semibold text-lg">{note.title}</h2>
-                                <p className="text-sm text-gray-500">
-                                    {new Date(note.created_at).toLocaleDateString()}
-                                </p>
-                            </div>
-                        </Link>
+                    <li key={note.id}>
+                        <NoteCard note={note}/>
                     </li>
                 ))}
             </ul>
