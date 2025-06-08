@@ -12,7 +12,8 @@ export default function ExplorePage() {
     const fetchNotes = async () => {
       const { data, error } = await supabase
         .from("notes")
-        .select("id, title, created_at, content")
+        .select("id, title, created_at, content, is_pinned")
+        .order("is_pinned", {ascending: false})
         .order("created_at", { ascending: false })
 
       if (data) {
@@ -30,6 +31,7 @@ export default function ExplorePage() {
             title: item.title,
             created_at: item.created_at,
             excerpt,
+            is_pinned: item.is_pinned,
           }
         })
         setNotes(list)
@@ -53,7 +55,22 @@ export default function ExplorePage() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         {notes.map(note => (
-          <NoteCard key={note.id} note={note} />
+          <NoteCard 
+            key={note.id} 
+            note={note} 
+            onTogglePin={()=>{
+                setNotes(prev =>
+                [...prev].map(n =>
+                    n.id === note.id ? {...n, is_pinned: !n.is_pinned} : n
+                ).sort((a, b) => {
+                    if (a.is_pinned === b.is_pinned){
+                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                    }
+                    return (b.is_pinned ? 1: 0) - (a.is_pinned ? 1: 0)
+                })
+                )
+            }}
+          />
         ))}
       </div>
     </main>
