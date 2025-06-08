@@ -7,8 +7,8 @@ import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
 
-export default function NoteDetailPage(){
-    const {id} = useParams()
+export default function NoteDetailPage() {
+    const { id } = useParams()
     const [title, setTitle] = useState("")
     const [initialContent, setInitialContent] = useState<JSONContent | null>(null)
     const [savingStatus, setSavingStatus] = useState("")
@@ -30,14 +30,14 @@ export default function NoteDetailPage(){
     }
 
     const isValidDoc = initialContent?.type === "doc"
-const shouldShowEditor = isValidDoc || initialContent === null
+    const shouldShowEditor = isValidDoc || initialContent === null
 
 
     const editor = useEditor({
         extensions: [StarterKit],
         content: isValidDoc ? initialContent : fallbackDoc,
         editable: true,
-        onUpdate({editor}){
+        onUpdate({ editor }) {
             const json = editor.getJSON()
             setLatestContent(json)
             setSavingStatus("Saving...")
@@ -46,31 +46,45 @@ const shouldShowEditor = isValidDoc || initialContent === null
 
     //自动保存
     useDebounce(() => {
-        if(!id || !latestContent) return
+        if (!id || !latestContent) return
 
-        const save = async () =>{
+        const save = async () => {
             await supabase
                 .from("notes")
-                .update({content: latestContent})
+                .update({ content: latestContent })
                 .eq("id", id)
-                setSavingStatus("Saved!")
+            setSavingStatus("Saved!")
         }
         save()
     }, 1500, [latestContent])
 
+useDebounce(() => {
+  if (!id || !title.trim()) return
+
+  const saveTitle = async () => {
+    await supabase
+      .from("notes")
+      .update({ title })
+      .eq("id", id)
+    setSavingStatus("Saved!")
+  }
+  saveTitle()
+}, 1000, [title])
+
+
     //获取初始数据
     useEffect(() => {
-        const fetchNote = async () =>{
-            const {data, error} = await supabase
+        const fetchNote = async () => {
+            const { data, error } = await supabase
                 .from("notes")
                 .select("*")
                 .eq("id", id)
                 .single()
 
-            if(data){
+            if (data) {
                 setTitle(data.title)
                 setInitialContent(data.content)
-            }else{
+            } else {
                 console.error("Failed to fetch note:", error)
             }
         }
@@ -79,15 +93,23 @@ const shouldShowEditor = isValidDoc || initialContent === null
 
     return (
         <main className="p-4 max-w-2xl mx-auto space-y-4">
-            <h1 className="text-2xl font-bold">{title}</h1>
+            <input
+                value={title}
+                onChange={(e) =>{
+                    setTitle(e.target.value)
+                    setSavingStatus("Saving...")
+                }}
+                placeholder="Enter a title"
+                className="w-full text-2xl font-bold outline-none bg-transparent"
+            />
             {shouldShowEditor && editor ? (
                 <>
-                    <div className="min-h-[calc(90vh-10rem)] border rounded p-4 text-base leading-relaxed ">
-                        <EditorContent editor={editor}/>
+                    <div className="min-h-[calc(80vh-10rem)] border rounded p-4 text-base leading-relaxed ">
+                        <EditorContent editor={editor} />
                     </div>
                     <p className="text-sm text-gray-500">{savingStatus}</p>
                 </>
-            ): (
+            ) : (
                 <p className="text-gray-500">Loading...</p>
             )}
         </main>
