@@ -10,14 +10,14 @@ export type NoteSummary = {
 export default function NoteCard({ note }: { note: NoteSummary }) {
   return (
     <Link href={`/notes/${note.id}`}>
-      <div className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer">
-        <h2 className="text-lg font-semibold truncate">{note.title}</h2>
+      <div className="rounded-xl border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer p-4">
+        <h2 className="text-lg font-semibold truncate mb-1">{note.title}</h2>
         {note.excerpt && (
-            <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2">
                 {note.excerpt}
             </p>
         )}
-        <div className="mt-3 flex justify-end text-xs text-gray-500">
+        <div className="mt-2 text-xs text-muted-foreground text-right">
             {new Date(note.created_at).toLocaleDateString()}
         </div>
       </div>

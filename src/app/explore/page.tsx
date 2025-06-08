@@ -16,14 +16,22 @@ export default function ExplorePage() {
         .order("created_at", { ascending: false })
 
       if (data) {
-        const list = data.map(item => ({
-          id: item.id,
-          title: item.title,
-          created_at: item.created_at,
-          excerpt: typeof item.content === "object"
-            ? (item.content.content?.[0]?.content?.[0]?.text || "")
-            : ""
-        }))
+        const list = data.map(item => {
+          let excerpt = ""
+          try {
+            const paragraph = item.content?.content?.find((b: any) => b.type === "paragraph")
+            excerpt = paragraph?.content?.[0]?.text || ""
+          } catch (err) {
+            excerpt = ""
+          }
+
+          return {
+            id: item.id,
+            title: item.title,
+            created_at: item.created_at,
+            excerpt,
+          }
+        })
         setNotes(list)
       } else {
         console.error(error)

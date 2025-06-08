@@ -122,6 +122,16 @@
   }
 }
 
+.ProseMirror{
+  outline: none;
+  min-height: 600px;
+  white-space: pre-wrap;
+}
+
+.ProseMirror p{
+  margin-bottom: 1em;
+}
+
 @tailwing base;
 @tailwing components;
 @tailwing utilities;

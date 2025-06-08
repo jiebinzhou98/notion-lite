@@ -3,62 +3,92 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { useEditor, EditorContent } from "@tiptap/react"
+import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
-
-type Note = {
-    id: string
-    title: string
-    content: any
-}
+import { useDebounce } from "@/lib/useDebounce"
 
 export default function NoteDetailPage(){
-    const { id } = useParams()
-    const router = useRouter()
-    const [note, setNote] = useState<Note | null>(null)
-    const [loading, setLoading] = useState(true)
+    const {id} = useParams()
+    const [title, setTitle] = useState("")
+    const [initialContent, setInitialContent] = useState<JSONContent | null>(null)
+    const [savingStatus, setSavingStatus] = useState("")
+    const [latestContent, setLatestContent] = useState<JSONContent | null>(null)
+
+    const fallbackDoc: JSONContent = {
+        type: "doc",
+        content: [
+            {
+                type: "paragraph",
+                content: [
+                    {
+                        type: "text",
+                        text: "",
+                    }
+                ],
+            },
+        ],
+    }
+
+    const isValidDoc = initialContent?.type === "doc"
+const shouldShowEditor = isValidDoc || initialContent === null
+
 
     const editor = useEditor({
         extensions: [StarterKit],
-        editable: false,  //只读
-        content: note?.content || "",
-    })
+        content: isValidDoc ? initialContent : fallbackDoc,
+        editable: true,
+        onUpdate({editor}){
+            const json = editor.getJSON()
+            setLatestContent(json)
+            setSavingStatus("Saving...")
+        },
+    }, [initialContent])
 
-    useEffect(() =>{
-        const fetchNotes = async () =>{
+    //自动保存
+    useDebounce(() => {
+        if(!id || !latestContent) return
+
+        const save = async () =>{
+            await supabase
+                .from("notes")
+                .update({content: latestContent})
+                .eq("id", id)
+                setSavingStatus("Saved!")
+        }
+        save()
+    }, 1500, [latestContent])
+
+    //获取初始数据
+    useEffect(() => {
+        const fetchNote = async () =>{
             const {data, error} = await supabase
                 .from("notes")
                 .select("*")
                 .eq("id", id)
                 .single()
 
-            if(error){
-                console.error("Failed to fetch notes: ",error)
+            if(data){
+                setTitle(data.title)
+                setInitialContent(data.content)
             }else{
-                setNote(data)
+                console.error("Failed to fetch note:", error)
             }
-            setLoading(false)
         }
-        fetchNotes()
-    },[id])
+        fetchNote()
+    }, [id])
 
-    return(
+    return (
         <main className="p-4 max-w-2xl mx-auto space-y-4">
-            <button
-                onClick={() => router.push("/explore")}
-                className="text-sm text-blue-600 underline"
-            >
-                ← Back to Explore
-            </button>
-            {loading ? (
-                <p className="text-gray-500">Loading...</p>
-            ): note?(
+            <h1 className="text-2xl font-bold">{title}</h1>
+            {shouldShowEditor && editor ? (
                 <>
-                    <h1 className="text-2xl font-bold">{note.title}</h1>
-                    <EditorContent editor={editor}/>
+                    <div className="min-h-[calc(90vh-10rem)] border rounded p-4 text-base leading-relaxed ">
+                        <EditorContent editor={editor}/>
+                    </div>
+                    <p className="text-sm text-gray-500">{savingStatus}</p>
                 </>
             ): (
-                <p className="text-red-500">Note not found</p>
+                <p className="text-gray-500">Loading...</p>
             )}
         </main>
     )
