@@ -87,6 +87,18 @@ export default function ExplorePage() {
             note={note}
             isActive={note.id === selectedNoteId}
             onSelect={setSelectedNoteId}
+            onTogglePin={() =>{
+                setNotes(prev =>
+                [...prev]
+                    .map(n => n.id === note.id ? {...n, is_pinned: !n.is_pinned} : n)
+                    .sort((a, b) => {
+                        if(a.is_pinned === b.is_pinned){
+                            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                        }
+                        return (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1: 0)
+                    })
+                )
+            }}
           />
         ))}
       </aside>
@@ -98,8 +110,8 @@ export default function ExplorePage() {
             id={selectedNoteId} 
             onUpdate={({title,excerpt}) =>{
                 setNotes(prev =>
-                    prev.map(note =>
-                        note.id === selectedNoteId ? {...note, title,excerpt} : note
+                    [...prev].map(n =>
+                        n.id === selectedNoteId ? {...n, title,excerpt} : n
                     )
                 )
             }}
