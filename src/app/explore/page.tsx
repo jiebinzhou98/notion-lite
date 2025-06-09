@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
+import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
 
 export default function ExplorePage() {
   const [notes, setNotes] = useState<NoteSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -36,6 +38,11 @@ export default function ExplorePage() {
           }
         })
         setNotes(list)
+
+        if(!selectedNoteId && list.length > 0){
+            setSelectedNoteId(list[0].id)
+        }
+
       } else {
         console.error(error)
       }
@@ -56,48 +63,51 @@ export default function ExplorePage() {
 
 
   return (
-    <main className="p-4 max-w-2xl mx-auto space-y-4">
-      <h1 className="text-2xl font-bold">Explore Notes</h1>
-        <div className="relative">
-        <input
-        type="text"
-        value={searchTerm}
-        onChange = {e => setSearchTerm(e.target.value)}
-        placeholder="Search notes..."
-        className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 text-sm sm:text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-        />
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base pointer-events-none select-none">🔍</span>
+    <div className="flex h-screen">
+      {/* 左侧笔记列表 */}
+      <aside className="w-[300px] border-r overflow-y-auto p-4 space-y-2">
+        <div className="relative mb-4">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search notes..."
+            className="w-full pl-10 pr-4 py-2 rounded-full border text-sm shadow-sm"
+          />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
         </div>
-      {loading && <p className="text-sm text-gray-500">Loading …</p>}
-      {!loading && notes.length === 0 && (
-        <p className="text-gray-500">No notes yet. Try creating one!</p>
-      )}
 
-      {/* 如果没有要查找的notes */}
-      {!loading && filteredNotes.length === 0 && searchTerm &&(
-        <p className="text-sm text-muted-foreground">No matching notes found</p>
-      )}
+        {filteredNotes.length === 0 && (
+          <p className="text-sm text-muted-foreground">No matching notes</p>
+        )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
         {filteredNotes.map(note => (
-          <NoteCard 
-            key={note.id} 
-            note={note} 
-            onTogglePin={()=>{
-                setNotes(prev =>
-                [...prev].map(n =>
-                    n.id === note.id ? {...n, is_pinned: !n.is_pinned} : n
-                ).sort((a, b) => {
-                    if (a.is_pinned === b.is_pinned){
-                        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                    }
-                    return (b.is_pinned ? 1: 0) - (a.is_pinned ? 1: 0)
-                })
-                )
-            }}
+          <NoteCard
+            key={note.id}
+            note={note}
+            isActive={note.id === selectedNoteId}
+            onSelect={setSelectedNoteId}
           />
         ))}
-      </div>
-    </main>
+      </aside>
+
+      {/* 右侧编辑器区域 */}
+      <main className="flex-1 overflow-y-auto p-4">
+        {selectedNoteId ? (
+          <NoteDetailEditor 
+            id={selectedNoteId} 
+            onUpdate={({title,excerpt}) =>{
+                setNotes(prev =>
+                    prev.map(note =>
+                        note.id === selectedNoteId ? {...note, title,excerpt} : note
+                    )
+                )
+            }}
+            />
+        ) : (
+          <p className="text-muted-foreground">Select a note to view</p>
+        )}
+      </main>
+    </div>
   )
 }
