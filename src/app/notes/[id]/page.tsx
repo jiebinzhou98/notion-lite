@@ -58,18 +58,18 @@ export default function NoteDetailPage() {
         save()
     }, 1500, [latestContent])
 
-useDebounce(() => {
-  if (!id || !title.trim()) return
+    useDebounce(() => {
+        if (!id || !title.trim()) return
 
-  const saveTitle = async () => {
-    await supabase
-      .from("notes")
-      .update({ title })
-      .eq("id", id)
-    setSavingStatus("Saved!")
-  }
-  saveTitle()
-}, 1000, [title])
+        const saveTitle = async () => {
+            await supabase
+                .from("notes")
+                .update({ title })
+                .eq("id", id)
+            setSavingStatus("Saved!")
+        }
+        saveTitle()
+    }, 1000, [title])
 
 
     //获取初始数据
@@ -92,22 +92,22 @@ useDebounce(() => {
     }, [id])
 
     return (
-        <main className="p-4 max-w-2xl mx-auto space-y-4">
+        <main className="p-4 py-6 md:px-8 max-w-3xl mx-auto space-y-4">
             <input
                 value={title}
-                onChange={(e) =>{
+                onChange={(e) => {
                     setTitle(e.target.value)
                     setSavingStatus("Saving...")
                 }}
-                placeholder="Enter a title"
-                className="w-full text-2xl font-bold outline-none bg-transparent"
+                placeholder="Untitled"
+                className="w-full text-3xl font-bold outline-none bg-transparent"
             />
             {shouldShowEditor && editor ? (
                 <>
-                    <div className="min-h-[calc(80vh-10rem)] border rounded p-4 text-base leading-relaxed ">
+                    <div className="min-h-[60vh] border rounded-xl bg-background p-6 shadow-sm">
                         <EditorContent editor={editor} />
                     </div>
-                    <p className="text-sm text-gray-500">{savingStatus}</p>
+                    <p className="text-sm text-muted-foreground text-right">{savingStatus}</p>
                 </>
             ) : (
                 <p className="text-gray-500">Loading...</p>
