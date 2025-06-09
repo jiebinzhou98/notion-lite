@@ -7,6 +7,7 @@ import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
 export default function ExplorePage() {
   const [notes, setNotes] = useState<NoteSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     const fetchNotes = async () => {
@@ -44,17 +45,39 @@ export default function ExplorePage() {
     fetchNotes()
   }, [])
 
+  //过滤器
+  const filteredNotes = notes.filter(note =>{
+    const query = searchTerm.toLocaleLowerCase()
+    return (
+        note.title.toLowerCase().includes(query) || 
+        note.excerpt?.toLocaleLowerCase().includes(query)
+    )
+  })
+
+
   return (
     <main className="p-4 max-w-2xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Explore Notes</h1>
+      <input
+        type="text"
+        value={searchTerm}
+        onChange = {e => setSearchTerm(e.target.value)}
+        placeholder="Search notes..."
+        className="w-full border rounded px-3 py-2 text-base"
+      />
 
       {loading && <p className="text-sm text-gray-500">Loading …</p>}
       {!loading && notes.length === 0 && (
         <p className="text-gray-500">No notes yet. Try creating one!</p>
       )}
 
+      {/* 如果没有要查找的notes */}
+      {!loading && filteredNotes.length === 0 && searchTerm &&(
+        <p className="text-sm text-muted-foreground">No matching notes found</p>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
-        {notes.map(note => (
+        {filteredNotes.map(note => (
           <NoteCard 
             key={note.id} 
             note={note} 
