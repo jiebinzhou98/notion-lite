@@ -4,8 +4,12 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
 import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
+import { Plus } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function ExplorePage() {
+    const router = useRouter()
+    const searchParams = useSearchParams()
   const [notes, setNotes] = useState<NoteSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -74,7 +78,7 @@ export default function ExplorePage() {
         .single()
 
     if(data){
-        const newNote: NoteSummary = {
+        const newNote= {
             id: data.id,
             title: data.title,
             created_at: data.created_at,
@@ -84,11 +88,18 @@ export default function ExplorePage() {
 
         setNotes(prev => [newNote, ...prev])
         setSelectedNoteId(data.id)
+        router.replace("/explore")
     }else{
         console.error("Failed to create note", error)
         alert("Failed to created")
     }
   }
+
+  useEffect(() =>{
+    if(searchParams.get("new") === "1"){
+        handleCreateNote()
+    }
+  }, [searchParams])
 
   //删除note
   const handleDelete = async (noteId: string)=>{
@@ -132,9 +143,13 @@ export default function ExplorePage() {
 
         <button
             onClick={handleCreateNote}
-            className="w-full text-center bg-black text-white rounded-full py-2 text-sm hover:bg-gray-800 transition mb-4"
+            className="fixed bottom-6 right-6 flexed items-center justify-center w-12 h-12
+                        bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-500
+                        active:scale-95 transition z-50 hidden md:flex"
+            aria-label="Create new note"
+            title="Create new note"
         >
-            ➕ 
+            <Plus className="w-6 h-6"/>
         </button>
 
         {filteredNotes.length === 0 && (
@@ -166,7 +181,7 @@ export default function ExplorePage() {
       {/* 右侧编辑器区域 */}
       <main className="flex-1 overflow-y-auto">
         {selectedNoteId ? (
-                      <NoteDetailEditor 
+            <NoteDetailEditor 
             id={selectedNoteId} 
             onUpdate={({title,excerpt}) =>{
                 setNotes(ns =>
