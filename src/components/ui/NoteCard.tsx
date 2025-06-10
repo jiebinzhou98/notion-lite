@@ -15,9 +15,19 @@ export type NoteSummary = {
 export default function NoteCard({ note, onTogglePin, isActive = false, onSelect, }: 
   { note: NoteSummary, onTogglePin?: () => void, isActive?: boolean, onSelect?:(id:string) => void }) 
   {
+    const router = useRouter()
+
+    const handleClick = () =>{
+      if(window.innerWidth < 768){
+        router.push(`/explore/${note.id}`)
+      }else{
+        onSelect?.(note.id)
+      }
+    }
 
   const togglePin = async (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
 
     const newPinned = !note.is_pinned
 
@@ -35,8 +45,10 @@ export default function NoteCard({ note, onTogglePin, isActive = false, onSelect
 
   return (
       <div
-        onClick={() => onSelect?.(note.id)}
-        className={`relative rounded-2xl border bg-card text-card-foreground shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-200 cursor-pointer p-4 space-y-2 hover:ring-1 hover:ring-muted
+        onClick={handleClick}
+        className={`relative rounded-2xl bg-card text-card-foreground shadow-sm
+                  hover:shadow-md hover:scale-[1.01] transition-all duration-200
+                  cursor-pointer p-4 space-y-2 hover:ring-1 hover:ring-muted
         ${isActive ? "ring-2 ring-primary bg-muted" : ""}
       `}
       >
@@ -44,6 +56,7 @@ export default function NoteCard({ note, onTogglePin, isActive = false, onSelect
         <button
           onClick={togglePin}
           className="absolute top-2 right-2 text-xl"
+          aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
         >
           {note.is_pinned ? "📌" : "📍"}
         </button>
