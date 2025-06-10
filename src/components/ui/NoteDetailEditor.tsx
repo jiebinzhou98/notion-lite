@@ -5,11 +5,13 @@ import { supabase } from "@/lib/supabase"
 import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
+import { Trash2 } from "lucide-react"
 
-export default function NoteDetailEditor({ id, onUpdate, }:
+export default function NoteDetailEditor({ id, onUpdate, onDelete}:
     {
         id: string,
         onUpdate?: (payload: { title: string; excerpt: string }) => void
+        onDelete?: (id:string) =>void
     }) {
     const [title, setTitle] = useState("")
     const [initialContent, setInitialContent] = useState<JSONContent | null>(null)
@@ -92,28 +94,44 @@ export default function NoteDetailEditor({ id, onUpdate, }:
         fetchNote()
     }, [id])
 
+
     return (
-        <main className="p-4 py-6 md:px-8 max-w-3xl mx-auto space-y-4">
-            <input
-                value={title}
-                onChange={(e) => {
-                    setTitle(e.target.value)
-                    setSavingStatus("Saving…")
-                }}
-                placeholder="Untitled"
-                className="w-full text-3xl font-bold outline-none bg-transparent"
-            />
+        <main className="flex-1 overflow-y-auto p-6 bg-white max-w-4xl mx-auto">
             {shouldShowEditor && editor ? (
-                <>
-                    <div className="min-h-[60vh] border rounded-xl bg-background p-6 shadow-sm">
-                        <EditorContent editor={editor} />
-                    </div>
-                    <p className="text-sm text-muted-foreground text-right">
-                        {savingStatus}
-                    </p>
-                </>
-            ) : (
-                <p className="text-gray-500">Loading…</p>
+                //delete button on top right
+                <div className="space-y-6">
+                <div className="flex justify-end">
+                    <button
+                        onClick={() => onDelete?.(id)}
+                        className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-red-100 transition"
+                        aria-label="Delete Note"
+                    >
+                        <Trash2 className="w-5 h-5 text-red-500 hover:text-red-600"/>
+                    </button>
+                </div>
+                
+                {/* title */}
+                <input
+                    value={title}
+                    onChange={ e => {
+                        setTitle(e.target.value)
+                        setSavingStatus("Saving...")
+                    }}
+                    placeholder="You Title Here..."
+                    className="w-full text-4xl font-semibold pb-2 border-b border-gray-200 focus:border-black outline-none bg-transparent"
+                />
+                
+                {/* Edit text */}
+                <div className="prose prose-lg min-h-[60vh] focus-within:outline-none">
+                    <EditorContent editor={editor}/>
+                </div>
+
+                <p className="text-xs text-gray-500 text-right">
+                    {savingStatus}
+                </p>
+                </div>
+            ): (
+                <p className="text-gray-400">Loading...</p>
             )}
         </main>
     )

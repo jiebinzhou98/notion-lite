@@ -66,7 +66,7 @@ export default function ExplorePage() {
     const {data, error} = await supabase
         .from("notes")
         .insert({
-            title:"Enter your title here...",
+            title:"",
             content: {type: "doc", content: []},
             is_pinned: false,
         })
@@ -74,10 +74,10 @@ export default function ExplorePage() {
         .single()
 
     if(data){
-        const newNote = {
+        const newNote: NoteSummary = {
             id: data.id,
             title: data.title,
-            created_at: data.create_at,
+            created_at: data.created_at,
             excerpt: "",
             is_pinned: false,
         }
@@ -93,7 +93,7 @@ export default function ExplorePage() {
   //删除note
   const handleDelete = async (noteId: string)=>{
     const confirmed = window.confirm("Confirmation to delete this note?")
-    if(confirmed) return 
+    if(!confirmed) return 
     const {error} = await supabase
         .from("notes")
         .delete()
@@ -164,31 +164,21 @@ export default function ExplorePage() {
       </aside>
 
       {/* 右侧编辑器区域 */}
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto">
         {selectedNoteId ? (
-        <div className="bg-white border rounded-2xl shadow-sm p-6 max-w-4xl mx-auto">
-            <div className="flex justify-between items-center">
-                <button
-                    onClick={() => handleDelete(selectedNoteId)}
-                    className="text-red-600 text-sm hover:underline"
-                >
-                    delete
-                </button>
-            </div>
-          <NoteDetailEditor 
+                      <NoteDetailEditor 
             id={selectedNoteId} 
             onUpdate={({title,excerpt}) =>{
-                setNotes(prev =>
-                    [...prev].map(n =>
-                        n.id === selectedNoteId ? {...n, title,excerpt} : n
-                    )
+                setNotes(ns =>
+                    ns.map (n => n.id === selectedNoteId ? {...n, title, excerpt} : n)
                 )
             }}
+            onDelete={handleDelete}
             />
-            </div>
-        ) : (
-          <p className="text-muted-foreground">Select a note to view</p>
+        ): (
+            <p className="text-muted-foreground p-6">Select a note to view</p>
         )}
+
       </main>
     </div>
   )
