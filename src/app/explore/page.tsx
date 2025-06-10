@@ -61,6 +61,59 @@ export default function ExplorePage() {
     )
   })
 
+  //添加note
+  const handleCreateNote = async () =>{
+    const {data, error} = await supabase
+        .from("notes")
+        .insert({
+            title:"Enter your title here...",
+            content: {type: "doc", content: []},
+            is_pinned: false,
+        })
+        .select()
+        .single()
+
+    if(data){
+        const newNote = {
+            id: data.id,
+            title: data.title,
+            created_at: data.create_at,
+            excerpt: "",
+            is_pinned: false,
+        }
+
+        setNotes(prev => [newNote, ...prev])
+        setSelectedNoteId(data.id)
+    }else{
+        console.error("Failed to create note", error)
+        alert("Failed to created")
+    }
+  }
+
+  //删除note
+  const handleDelete = async (noteId: string)=>{
+    const confirmed = window.confirm("Confirmation to delete this note?")
+    if(confirmed) return 
+    const {error} = await supabase
+        .from("notes")
+        .delete()
+        .eq("id", noteId)
+    if(error){
+        console.error("Failed to delete", error)
+        alert("Failed to delete")
+        return
+    }
+    setNotes(prev => prev.filter(n => n.id !== noteId))
+
+    if(noteId === selectedNoteId){
+        if(noteId.length > 1){
+            const nextNote = notes.find(n => n.id !== noteId)
+            setSelectedNoteId(nextNote?.id || null)
+        }else{
+            setSelectedNoteId(null)
+        }
+    }
+  }
 
   return (
     <div className="flex h-screen">
@@ -76,6 +129,13 @@ export default function ExplorePage() {
           />
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
         </div>
+
+        <button
+            onClick={handleCreateNote}
+            className="w-full text-center bg-black text-white rounded-full py-2 text-sm hover:bg-gray-800 transition mb-4"
+        >
+            ➕ 
+        </button>
 
         {filteredNotes.length === 0 && (
           <p className="text-sm text-muted-foreground">No matching notes</p>
@@ -104,8 +164,17 @@ export default function ExplorePage() {
       </aside>
 
       {/* 右侧编辑器区域 */}
-      <main className="flex-1 overflow-y-auto p-4">
+      <main className="flex-1 overflow-y-auto p-8">
         {selectedNoteId ? (
+        <div className="bg-white border rounded-2xl shadow-sm p-6 max-w-4xl mx-auto">
+            <div className="flex justify-between items-center">
+                <button
+                    onClick={() => handleDelete(selectedNoteId)}
+                    className="text-red-600 text-sm hover:underline"
+                >
+                    delete
+                </button>
+            </div>
           <NoteDetailEditor 
             id={selectedNoteId} 
             onUpdate={({title,excerpt}) =>{
@@ -116,6 +185,7 @@ export default function ExplorePage() {
                 )
             }}
             />
+            </div>
         ) : (
           <p className="text-muted-foreground">Select a note to view</p>
         )}
