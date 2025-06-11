@@ -40,7 +40,7 @@ export default function MobileNotePage() {
 
     const handleDelete = async (id: string) => {
         await supabase.from("notes").delete().eq("id", id)
-        router.back()
+        goToList()
     }
 
     function goToList(){
@@ -53,7 +53,7 @@ export default function MobileNotePage() {
             <header className="flex items-center gap-2 px-4 py-3 border-b bg-white">
             <button
                 onClick={() => router.back()}
-                className="p-1 rounded hoaver:bg-gray-100 transition"
+                className="p-1 rounded hover:bg-gray-100 transition"
             >
                 <ArrowLeft className="w-5 h-5 text-gray-700"/>
             </button>
@@ -78,10 +78,11 @@ export default function MobileNotePage() {
             <div className="flex-1 overflow-y-auto">
                 <NoteDetailEditor 
                     id={Array.isArray(noteId) ? noteId[0] : noteId}
-                    onDelete={async id => {
-                        await supabase.from("notes").delete().eq("id",id)
-                        goToList()
-                    }}
+                    // onDelete={async id => {
+                    //     await supabase.from("notes").delete().eq("id",id)
+                    //     goToList()
+                    // }}
+                    onDelete={handleDelete}
                     onUpdate={({title: newTitle}) => {
                         setTitle(newTitle)
                     }}

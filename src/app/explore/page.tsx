@@ -24,10 +24,12 @@ export default function ExplorePage() {
     },[selectedFromUrl])
 
     useEffect(() =>{
+        let redirected = false
         function onResize() {
             if(window.innerWidth < 768 && selectedNoteId
                 && searchParams.get("selected")
             ){
+                redirected = true
                 router.replace(`/explore/${selectedNoteId}`)
             }
         }
@@ -63,17 +65,17 @@ export default function ExplorePage() {
                     }
                 })
                 setNotes(list)
-
-                if (!selectedNoteId && list.length > 0) {
+                
+                if(selectedFromUrl){
+                    setSelectedNoteId(selectedFromUrl)
+                }else if (list.length > 0){
                     setSelectedNoteId(list[0].id)
                 }
-
             } else {
                 console.error(error)
             }
             setLoading(false)
         }
-
         fetchNotes()
     }, [])
 
@@ -109,7 +111,7 @@ export default function ExplorePage() {
 
             setNotes(prev => [newNote, ...prev])
             setSelectedNoteId(data.id)
-            router.replace("/explore")
+            router.replace(`/explore?selected=${data.id}`)
         } else {
             console.error("Failed to create note", error)
             alert("Failed to created")
