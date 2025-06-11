@@ -66,7 +66,7 @@ export default function MobileNotePage() {
     }
     return(
         <div className="h-screen flex flex-col">
-            <header className="flex items-center gap-3 px-4 py-3 border-b bg-white">
+            <header className="flex items-center gap-2 px-3 py-1 border-b bg-white">
             <button
                 onClick={goToList} 
                 className="p-1 rounded hover:bg-gray-100 transition"
@@ -75,13 +75,9 @@ export default function MobileNotePage() {
             </button>
             <h1 className="text-lg font-semibold truncate">{title || "Untitled"}</h1>
             </header>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pt-4">
                 <NoteDetailEditor 
                     id={Array.isArray(noteId) ? noteId[0] : noteId}
-                    // onDelete={async id => {
-                    //     await supabase.from("notes").delete().eq("id",id)
-                    //     goToList()
-                    // }}
                     onDelete={handleDelete}
                     onUpdate={({title: newTitle}) => {
                         setTitle(newTitle)

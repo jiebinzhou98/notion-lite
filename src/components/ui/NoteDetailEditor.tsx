@@ -99,17 +99,7 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete}:
         <main className="flex-1 overflow-y-auto p-6 bg-white max-w-4xl mx-auto">
             {shouldShowEditor && editor ? (
                 //delete button on top right
-                <div className="space-y-6">
-                <div className="flex justify-end">
-                    <button
-                        onClick={() => onDelete?.(id)}
-                        className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-red-100 transition"
-                        aria-label="Delete Note"
-                    >
-                        <Trash2 className="w-5 h-5 text-red-500 hover:text-red-600"/>
-                    </button>
-                </div>
-                
+                <div>      
                 {/* title */}
                 <input
                     value={title}
@@ -120,6 +110,15 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete}:
                     placeholder="You Title Here..."
                     className="w-full text-4xl font-semibold pb-2 border-b border-gray-200 focus:border-black outline-none bg-transparent"
                 />
+                <div className="flex justify-end mt-2">
+                    <button
+                        onClick={() => onDelete?.(id)}
+                        className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-red-100 transition"
+                        aria-label="Delete Note"
+                    >
+                        <Trash2 className="w-5 h-5 text-red-500 hover:text-red-600"/>
+                    </button>
+                </div>
                 
                 {/* Edit text */}
                 <div className="prose prose-lg min-h-[60vh] focus-within:outline-none">
