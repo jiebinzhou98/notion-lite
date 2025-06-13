@@ -90,7 +90,7 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
     }, [id])
 
     return (
-        <main className="flex-1 overflow-y-auto p-6 bg-white max-w-4xl mx-auto space-y-4">
+        <main className="flex-1 overflow-hidden p-6 bg-white/90 backdrop-blur-sm space-y-4 rounded-2xl">
             {shouldShowEditor && editor ? (
                 <>
                     {/* Title and delete */}
@@ -136,7 +136,7 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
                     </div>
 
                     {/* Editor content */}
-                    <div className="pt-4 prose prose-lg min-h-[60vh] focus-within:outline-none">
+                    <div className="pt-4 prose prose-lg min-h-[60vh] overflow-y-auto focus-within:outline-none">
                         <EditorContent editor={editor} />
                     </div>
 

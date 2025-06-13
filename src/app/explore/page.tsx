@@ -152,7 +152,7 @@ export default function ExplorePage() {
     return (
         <div className="flex h-screen">
             {/* 左侧笔记列表 */}
-            <aside className="w-full md:w-[300px] border-r overflow-y-auto p-4 space-y-2">
+            <aside className="w-full md:w-[300px] p-4 space-y-2 overflow-y-auto bg-white/80 backdrop-blur-sm rounded-tr-xl border-r border-white/30">
                 <div className="relative mb-4">
                     <input
                         type="text"
@@ -202,7 +202,11 @@ export default function ExplorePage() {
             </aside>
 
             {/* 右侧编辑器区域 */}
-            <main className="hidden md:flex-1 md:flex md:overflow-y-auto">
+            <main className="hidden md:flex-1 md:flex md:flex-col md:overflow-y-auto
+    p-6
+    bg-white/40 backdrop-blur-sm
+    rounded-tl-xl rounded-bl-xl
+    shadow-inner">
                 {selectedNoteId ? (
                     <NoteDetailEditor
                         id={selectedNoteId}
