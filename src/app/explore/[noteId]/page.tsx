@@ -66,7 +66,7 @@ export default function MobileNotePage() {
     }
     return(
         <div className="h-screen flex flex-col">
-            <header className="flex items-center gap-2 px-3 py-1 border-b bg-white">
+            <header className="flex items-center justify-between gap-2 px-3 py-1 border-b bg-white">
             <button
                 onClick={goToList} 
                 className="p-1 rounded hover:bg-gray-100 transition"
