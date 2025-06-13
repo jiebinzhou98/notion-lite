@@ -47,10 +47,10 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
         [initialContent]
     )
 
-function handleDownloadAsHtml() {
-  if (!editor) return;
-  const html = editor.getHTML();
-  const full = `
+    function handleDownloadAsHtml() {
+        if (!editor) return;
+        const html = editor.getHTML();
+        const full = `
 <!doctype html>
 <html>
   <head>
@@ -59,7 +59,6 @@ function handleDownloadAsHtml() {
     <style>
       body { font-family: sans-serif; padding: 24px; }
       h1 { font-size: 1.8em; margin-bottom: .5em; }
-      /* 你还可以把编辑器里的样式内联进来 */
     </style>
   </head>
   <body>
@@ -68,16 +67,16 @@ function handleDownloadAsHtml() {
   </body>
 </html>
 `;
-  const blob = new Blob([full], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${(title || "note").replace(/\s+/g, "_")}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+        const blob = new Blob([full], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${(title || "note").replace(/\s+/g, "_")}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
 
 
     useDebounce(
@@ -124,7 +123,7 @@ function handleDownloadAsHtml() {
     }, [id])
 
     return (
-        <main className="flex-1 overflow-hidden p-6 bg-white/90 backdrop-blur-sm space-y-4 rounded-2xl">
+        <main className="flex-1 overflow-y-auto p-6 bg-white/90 backdrop-blur-sm space-y-4 rounded-2xl">
             {shouldShowEditor && editor ? (
                 <>
                     {/* Title and delete */}
@@ -169,7 +168,7 @@ function handleDownloadAsHtml() {
                                 className="p-1 rounded hover:bg-gray-200 transition"
                                 title="Download note"
                             >
-                                <Download className="w-5 h-5"/>
+                                <Download className="w-5 h-5" />
                             </button>
                         </div>
                         {/* Moved Save Status into the toolbar row */}
@@ -179,7 +178,7 @@ function handleDownloadAsHtml() {
                     </div>
 
                     {/* Editor content */}
-                    <div className="pt-4 prose prose-lg min-h-[60vh] overflow-y-auto focus-within:outline-none">
+                    <div className="pt-4 prose prose-lg min-h-[60vh] focus-within:outline-none">
                         <EditorContent editor={editor} />
                     </div>
 

@@ -5,11 +5,12 @@ import { supabase } from "@/lib/supabase"
 import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
 import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
 import { Plus } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 
 export default function ExplorePage() {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const pathname = usePathname()
     const selectedFromUrl = searchParams.get("selected")
 
     const [notes, setNotes] = useState<NoteSummary[]>([])
@@ -118,11 +119,17 @@ export default function ExplorePage() {
         }
     }
 
-    useEffect(() => {
-        if (searchParams.get("new") === "1") {
-            handleCreateNote()
-        }
-    }, [searchParams])
+    // useEffect(() => {
+    //     if (searchParams.get("new") === "1") {
+    //         handleCreateNote()
+    //     }
+    // }, [searchParams])
+
+  useEffect(() => {
+    if (pathname === "/explore" && searchParams.get("new") === "1") {
+      handleCreateNote()
+    }
+  }, [pathname, searchParams])
 
     //删除note
     const handleDelete = async (noteId: string) => {
@@ -202,11 +209,8 @@ export default function ExplorePage() {
             </aside>
 
             {/* 右侧编辑器区域 */}
-            <main className="hidden md:flex-1 md:flex md:flex-col md:overflow-y-auto
-    p-6
-    bg-white/40 backdrop-blur-sm
-    rounded-tl-xl rounded-bl-xl
-    shadow-inner">
+            <main className="hidden md:flex-1 md:flex md:flex-col h-full overflow-hidden p-6
+                            bg-white/40 backdrop-blur-sm rounded-tl-xl rounded-bl-xl shadow-inner">
                 {selectedNoteId ? (
                     <NoteDetailEditor
                         id={selectedNoteId}
