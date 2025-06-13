@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase"
 import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
-import { Trash2, Bold, Italic } from "lucide-react"
+import { Trash2, Bold, Italic, Download } from "lucide-react"
+
 
 
 export default function NoteDetailEditor({ id, onUpdate, onDelete }:
@@ -45,6 +46,39 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
         },
         [initialContent]
     )
+
+function handleDownloadAsHtml() {
+  if (!editor) return;
+  const html = editor.getHTML();
+  const full = `
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>${title || "note"}</title>
+    <style>
+      body { font-family: sans-serif; padding: 24px; }
+      h1 { font-size: 1.8em; margin-bottom: .5em; }
+      /* 你还可以把编辑器里的样式内联进来 */
+    </style>
+  </head>
+  <body>
+    <h1>${title || "Untitled"}</h1>
+    ${html}
+  </body>
+</html>
+`;
+  const blob = new Blob([full], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${(title || "note").replace(/\s+/g, "_")}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 
     useDebounce(
         () => {
@@ -127,6 +161,15 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
                                 className={`p-1 rounded ${editor.isActive("italic") ? "bg-gray-200" : ""}`}
                             >
                                 <Italic className="w-5 h-5" />
+                            </button>
+
+                            <button
+                                onClick={handleDownloadAsHtml}
+                                disabled={!editor}
+                                className="p-1 rounded hover:bg-gray-200 transition"
+                                title="Download note"
+                            >
+                                <Download className="w-5 h-5"/>
                             </button>
                         </div>
                         {/* Moved Save Status into the toolbar row */}
