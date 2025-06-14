@@ -25,6 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="manifest" href="/manifest.json"/>
+              <link rel="icon" href="/favicon.ico" />
+
+        <meta name="theme-color" content="#ffffff"/>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased
           bg-gradient-to-br
@@ -33,7 +39,7 @@ export default function RootLayout({
         `}
       >
         {children}
-        <BottomNav/>
+        <BottomNav />
       </body>
     </html>
   );
