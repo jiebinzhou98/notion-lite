@@ -6,7 +6,18 @@ import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
-import { lineHeight } from "@/lib/tiptap-extensions/LineHeight"    // ✔️ 正确导入
+// Import the type augmentation for setLineHeight command
+import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
+import type { Editor } from "@tiptap/react"
+
+// Augment the Editor interface to include setLineHeight for TypeScript
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    setLineHeight: {
+      setLineHeight: (lineHeight: string) => ReturnType
+    }
+  }
+}
 
 export default function NoteDetailEditor({ id, onUpdate, onDelete }:
     {
@@ -34,7 +45,7 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
         {
             extensions: [
                 StarterKit,
-                lineHeight,
+                LineHeight,
             ],
             content: isValidDoc ? initialContent : fallbackDoc,
             editable: true,
@@ -170,7 +181,7 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
                             >
                                 <Download className="w-5 h-5" />
                             </button>
-                            +    <button
+                            <button
                                 onClick={() => editor.chain().focus().insertContent('    ').run()}
                                 className="p-1 rounded hover:bg-gray-200"
                                 title="Tab"
