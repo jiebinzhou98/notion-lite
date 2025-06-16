@@ -12,6 +12,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@supabase/supabase-js": "^2.50.0",
     "@tiptap/extension-character-count": "^2.14.0",
+    "@tiptap/extension-text-style": "^2.14.0",
     "@tiptap/react": "^2.14.0",
     "@tiptap/starter-kit": "^2.14.0",
     "class-variance-authority": "^0.7.1",

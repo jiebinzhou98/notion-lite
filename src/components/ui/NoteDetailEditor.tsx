@@ -6,8 +6,7 @@ import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
-
-
+import { lineHeight } from "@/lib/tiptap-extensions/LineHeight"    // ✔️ 正确导入
 
 export default function NoteDetailEditor({ id, onUpdate, onDelete }:
     {
@@ -35,6 +34,7 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
         {
             extensions: [
                 StarterKit,
+                lineHeight,
             ],
             content: isValidDoc ? initialContent : fallbackDoc,
             editable: true,
@@ -169,6 +169,34 @@ export default function NoteDetailEditor({ id, onUpdate, onDelete }:
                                 title="Download note"
                             >
                                 <Download className="w-5 h-5" />
+                            </button>
+                            +    <button
+                                onClick={() => editor.chain().focus().insertContent('    ').run()}
+                                className="p-1 rounded hover:bg-gray-200"
+                                title="Tab"
+                            >
+                                Tab
+                            </button>
+
+                            <button
+                                onClick={() => editor.chain().focus().setLineHeight('1').run()}
+                                className={`p-1 rounded ${editor.getAttributes('paragraph').lineHeight === '1' ? 'bg-gray-200' : ''}`}
+                            >
+                                1.0
+                            </button>
+
+                            <button
+                                onClick={() => editor.chain().focus().setLineHeight('1.5').run()}
+                                className={`p-1 rounded ${editor.getAttributes('paragraph').lineHeight === '1.5' ? 'bg-gray-200' : ''}`}
+                            >
+                                1.5
+                            </button>
+
+                            <button
+                                onClick={() => editor.chain().focus().setLineHeight('2').run()}
+                                className={`p-1 rounded ${editor.getAttributes('paragraph').lineHeight === '2' ? 'bg-gray-200' : ''}`}
+                            >
+                                2.0
                             </button>
                         </div>
                         {/* Moved Save Status into the toolbar row */}
