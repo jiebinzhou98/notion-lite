@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
 import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
-import { Plus } from "lucide-react"
+import { Plus, Edit } from "lucide-react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 
 export default function ClientExplorePage() {
@@ -19,17 +19,17 @@ export default function ClientExplorePage() {
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
 
     useEffect(() => {
-        if(selectedFromUrl){
+        if (selectedFromUrl) {
             setSelectedNoteId(selectedFromUrl)
         }
-    },[selectedFromUrl])
+    }, [selectedFromUrl])
 
-    useEffect(() =>{
+    useEffect(() => {
         let redirected = false
         function onResize() {
-            if(window.innerWidth < 768 && selectedNoteId
+            if (window.innerWidth < 768 && selectedNoteId
                 && searchParams.get("selected")
-            ){
+            ) {
                 redirected = true
                 router.replace(`/explore/${selectedNoteId}`)
             }
@@ -66,10 +66,10 @@ export default function ClientExplorePage() {
                     }
                 })
                 setNotes(list)
-                
-                if(selectedFromUrl){
+
+                if (selectedFromUrl) {
                     setSelectedNoteId(selectedFromUrl)
-                }else if (list.length > 0){
+                } else if (list.length > 0) {
                     setSelectedNoteId(list[0].id)
                 }
             } else {
@@ -125,11 +125,11 @@ export default function ClientExplorePage() {
     //     }
     // }, [searchParams])
 
-  useEffect(() => {
-    if (pathname === "/explore" && searchParams.get("new") === "1") {
-      handleCreateNote()
-    }
-  }, [pathname, searchParams])
+    useEffect(() => {
+        if (pathname === "/explore" && searchParams.get("new") === "1") {
+            handleCreateNote()
+        }
+    }, [pathname, searchParams])
 
     //删除note
     const handleDelete = async (noteId: string) => {
@@ -159,28 +159,29 @@ export default function ClientExplorePage() {
     return (
         <div className="flex h-screen">
             {/* 左侧笔记列表 */}
-            <aside className="w-full md:w-[300px] p-4 space-y-2 overflow-y-auto bg-white/80 backdrop-blur-sm rounded-tr-xl border-r border-white/30">
-                <div className="relative mb-4">
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        placeholder="Search notes..."
-                        className="w-full pl-10 pr-4 py-2 rounded-full border text-sm shadow-sm"
-                    />
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <aside className="w-full md:w-[300px] p-4 bg-white/80 backdrop-blur-sm rounded-tr-xl border-r border-white/30 overflow-y-auto space-y-2">
+                <div className="flex items-center mb-4 space-x-2">
+                    <div className="relative flex-1">
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            placeholder="Search notes..."
+                            className="w-full pl-10 pr-4 py-2 rounded-full border text-sm shadow-sm"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                    </div>
+                    <button
+                        onClick={handleCreateNote}
+                        className="flex-none flex items-center justify-center w-10 h-10
+                     bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-500
+                     active:scale-95 transition"
+                        aria-label="Create new note"
+                        title="Create new note"
+                    >
+                        <Edit className="w-6 h-6" />
+                    </button>
                 </div>
-
-                <button
-                    onClick={handleCreateNote}
-                    className="fixed bottom-6 right-6 flex items-center justify-center w-12 h-12
-                        bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-500
-                        active:scale-95 transition z-50 hidden md:flex"
-                    aria-label="Create new note"
-                    title="Create new note"
-                >
-                    <Plus className="w-6 h-6" />
-                </button>
 
                 {filteredNotes.length === 0 && (
                     <p className="text-sm text-muted-foreground">No matching notes</p>
