@@ -165,7 +165,7 @@ export default function NoteDetailEditor({
       ) : (
         <>
           {/* 标题 + 删除 */}
-          <div className="flex items-baseline justify-between border-b pb-2">
+          <div className="flex items-center justify-between border-b pb-2">
             <input
               value={title}
               onChange={(e) => {
@@ -177,14 +177,14 @@ export default function NoteDetailEditor({
             />
 
                         {/* 文件夹下拉 */}
-          <div className="flex items-center mx-4">
-            <label className="text-sm font-medium whitespace-nowrap">
+          <div className="flex items-center space-x-2 mr-4">
+            <label className="text-sm font-medium text-gray-600 whitespace-nowrap">
               Folder:
             </label>
             <select
               value={selectedFolder ?? ""}
               onChange={handleFolderChange}
-              className="border px-2 py-1 rounded text-sm"
+              className="border border-gray-300 px-2 py-1 rounded text-sm focus:ring-1 focus:ring-indigo-200"
             >
               <option value="">All</option>
               {folders.map((f) => (
@@ -197,7 +197,8 @@ export default function NoteDetailEditor({
 
             <button
               onClick={() => onDelete?.(id)}
-              className="ml-4 p-1 rounded hover:bg-red-100 transition"
+              className="p-1 text-red-500 hover:bg-red-50 rounded transition"
+              aria-label="Delete Note"
             >
               <Trash2 className="w-5 h-5 text-red-500" />
             </button>
