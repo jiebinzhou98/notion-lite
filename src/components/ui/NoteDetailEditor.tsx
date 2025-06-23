@@ -8,9 +8,8 @@ import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
-import type { Editor } from "@tiptap/react"
 
-// 1. 增强 Commands 接口，支持 setLineHeight
+// 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     setLineHeight: {
@@ -61,7 +60,7 @@ export default function NoteDetailEditor({
     [initialContent]
   )
 
-  // 2. 菜单选择：移动到文件夹
+  // 移动文件夹
   const handleFolderChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newId = e.target.value || null
     const { error } = await supabase
@@ -81,29 +80,14 @@ export default function NoteDetailEditor({
     const html = editor.getHTML()
     const full = `
 <!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>${title || "note"}</title>
-    <style>
-      body { font-family: sans-serif; padding: 24px; }
-      h1 { font-size: 1.8em; margin-bottom: .5em; }
-    </style>
-  </head>
-  <body>
-    <h1>${title || "Untitled"}</h1>
-    ${html}
-  </body>
-</html>
-`
+<html><head><meta charset="utf-8"><title>${title || "note"}</title></head>
+<body><h1>${title || "Untitled"}</h1>${html}</body></html>`
     const blob = new Blob([full], { type: "text/html" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
     a.download = `${(title || "note").replace(/\s+/g, "_")}.html`
-    document.body.appendChild(a)
     a.click()
-    document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
 
@@ -111,19 +95,48 @@ export default function NoteDetailEditor({
   useDebounce(
     () => {
       if (!title.trim()) return
-      supabase.from("notes").update({ title }).eq("id", id)
-      setSavingStatus("Saved!")
+      ;(async () => {
+        try {
+          const { error } = await supabase
+            .from("notes")
+            .update({ title })
+            .eq("id", id)
+          if (error) throw error
+          setSavingStatus("Saved!")
+        } catch (e) {
+          console.error("Failed saving title", e)
+        }
+      })()
     },
     1000,
     [title]
   )
 
-  // 自动保存内容
+  // 自动保存内容（带空节点过滤 + 日志 + 错误捕获）
   useDebounce(
     () => {
       if (!latestContent) return
-      supabase.from("notes").update({ content: latestContent }).eq("id", id)
-      setSavingStatus("Saved!")
+
+      // 跳过完全空文档
+      const paras = latestContent.content?.[0]?.content
+      if (!paras || paras.length === 0) {
+        console.warn("Skip saving empty document")
+        return
+      }
+
+      ;(async () => {
+        console.log("Saving content to Supabase:", latestContent)
+        try {
+          const { error } = await supabase
+            .from("notes")
+            .update({ content: latestContent })
+            .eq("id", id)
+          if (error) throw error
+          setSavingStatus("Saved!")
+        } catch (e) {
+          console.error("Failed saving content", e)
+        }
+      })()
     },
     1500,
     [latestContent]
@@ -152,19 +165,18 @@ export default function NoteDetailEditor({
           setTitle(data.title)
           setInitialContent(data.content)
         } else {
-          console.error(error)
+          console.error("Failed fetching note:", error)
         }
       })
   }, [id])
 
-  // 渲染
   return (
     <main className="flex-1 overflow-y-auto p-6 bg-white/90 backdrop-blur-sm space-y-4 rounded-2xl">
       {!editor ? (
         <p className="text-gray-400">Loading editor...</p>
       ) : (
         <>
-          {/* 标题 + 删除 */}
+          {/* 标题 + 下拉 + 删除 */}
           <div className="flex items-center justify-between border-b pb-2">
             <input
               value={title}
@@ -176,51 +188,46 @@ export default function NoteDetailEditor({
               className="flex-1 text-4xl font-semibold outline-none bg-transparent"
             />
 
-                        {/* 文件夹下拉 */}
-          <div className="flex items-center space-x-2 mr-4">
-            <label className="text-sm font-medium text-gray-600 whitespace-nowrap">
-              Folder:
-            </label>
-            <select
-              value={selectedFolder ?? ""}
-              onChange={handleFolderChange}
-              className="border border-gray-300 px-2 py-1 rounded text-sm focus:ring-1 focus:ring-indigo-200"
-            >
-              <option value="">All</option>
-              {folders.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* Folder 下拉 */}
+            <div className="flex items-center space-x-2 mr-4">
+              <label className="text-sm font-medium text-gray-600 whitespace-nowrap">
+                Folder:
+              </label>
+              <select
+                value={selectedFolder ?? ""}
+                onChange={handleFolderChange}
+                className="border border-gray-300 px-2 py-1 rounded text-sm focus:ring-1 focus:ring-indigo-200"
+              >
+                <option value="">All</option>
+                {folders.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
+            {/* Delete */}
             <button
               onClick={() => onDelete?.(id)}
               className="p-1 text-red-500 hover:bg-red-50 rounded transition"
-              aria-label="Delete Note"
             >
-              <Trash2 className="w-5 h-5 text-red-500" />
+              <Trash2 className="w-5 h-5" />
             </button>
           </div>
-
 
           {/* 工具栏 + 保存状态 */}
           <div className="flex items-center justify-between gap-3 border-b pb-2">
             <div className="flex gap-3">
               <button
                 onClick={() => editor.chain().focus().toggleBold().run()}
-                className={`p-1 rounded ${
-                  editor.isActive("bold") ? "bg-gray-200" : ""
-                }`}
+                className={`p-1 rounded ${editor.isActive("bold") ? "bg-gray-200" : ""}`}
               >
                 <Bold className="w-5 h-5" />
               </button>
               <button
                 onClick={() => editor.chain().focus().toggleItalic().run()}
-                className={`p-1 rounded ${
-                  editor.isActive("italic") ? "bg-gray-200" : ""
-                }`}
+                className={`p-1 rounded ${editor.isActive("italic") ? "bg-gray-200" : ""}`}
               >
                 <Italic className="w-5 h-5" />
               </button>
@@ -241,9 +248,7 @@ export default function NoteDetailEditor({
                   key={lh}
                   onClick={() => editor.chain().focus().setLineHeight(lh).run()}
                   className={`p-1 rounded ${
-                    editor.getAttributes("paragraph").lineHeight === lh
-                      ? "bg-gray-200"
-                      : ""
+                    editor.getAttributes("paragraph").lineHeight === lh ? "bg-gray-200" : ""
                   }`}
                 >
                   {lh}
