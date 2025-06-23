@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
 import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
-import { Plus, Edit, ChevronsLeft, ChevronsRight } from "lucide-react"
+import { Plus, Edit, ChevronsLeft, ChevronsRight, Trash2 } from "lucide-react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 
 export default function ClientExplorePage() {
@@ -187,6 +187,26 @@ export default function ClientExplorePage() {
     setCreatingFolder(false)
   }
 
+  //删除folder
+  const handleDeleteFolder = async (folderId: string) =>{
+    if(!confirm ("Delete this folder and all its notes?")) return
+    //先把folder 里的notes 归位到null（全部）
+    await supabase
+        .from("notes")
+        .update({folder_id: null})
+        .eq("folder_id", folderId)
+    //再去删除
+    const {error} = await supabase.from("folders").delete().eq("id", folderId)
+    if(error){
+        console.error(error)
+        return
+    }
+    setFolders(folders.filter(f => f.id !== folderId))
+    if(selectedFolder === folderId){
+        setSelectedFolder(null)
+    }
+  }
+
   // RENDER -----------------------------------------------------
   if (loading) {
     return (
@@ -198,71 +218,72 @@ export default function ClientExplorePage() {
 
 return (
     <div className="flex h-screen">
-      {/* —— 抽屉：Folders —— */}
       {drawerOpen && (
-        <aside className="w-64 p-4 bg-white/90 border-r border-gray-200 overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold">Folders</h3>
-            {creatingFolder ? (
-              <div className="flex items-center space-x-1">
-                <input
-                  ref={folderInputRef}
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && confirmCreateFolder()}
-                  className="border px-2 py-1 rounded text-sm"
-                  placeholder="Name"
-                />
-                <button onClick={confirmCreateFolder} className="text-green-600">
-                  ✔️
-                </button>
-                <button
-                  onClick={() => setCreatingFolder(false)}
-                  className="text-red-600"
-                >
-                  ✖️
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  setCreatingFolder(true)
-                  setTimeout(() => folderInputRef.current?.focus(), 0)
-                }}
-                className="p-1 rounded hover:bg-gray-100"
-                title="New folder"
-              >
-                <Plus />
-              </button>
-            )}
-          </div>
-          <div className="space-y-2">
-            <button
-              onClick={() => setSelectedFolder(null)}
-              className={`block w-full text-left px-3 py-1 rounded ${
-                selectedFolder === null
-                  ? "bg-indigo-600 text-white"
-                  : "hover:bg-gray-100"
-              }`}
-            >
-              All
-            </button>
-            {folders.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setSelectedFolder(f.id)}
-                className={`block w-full text-left px-3 py-1 rounded ${
-                  selectedFolder === f.id
-                    ? "bg-indigo-600 text-white"
-                    : "hover:bg-gray-100"
-                }`}
-              >
-                {f.name}
-              </button>
-            ))}
-          </div>
-        </aside>
+  <aside className="w-64 p-4 bg-white/90 border-r border-gray-200 overflow-y-auto">
+    {/* 标题 + 新建 */}
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-sm font-semibold">Folders</h3>
+      {creatingFolder ? (
+        <div className="flex items-center space-x-1">
+          <input
+            ref={folderInputRef}
+            value={newFolderName}
+            onChange={e => setNewFolderName(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && confirmCreateFolder()}
+            className="border px-2 py-1 rounded text-sm"
+            placeholder="Name"
+          />
+          <button onClick={confirmCreateFolder} className="text-green-600">✔️</button>
+          <button onClick={() => setCreatingFolder(false)} className="text-red-600">✖️</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => {
+            setCreatingFolder(true)
+            setTimeout(() => folderInputRef.current?.focus(), 0)
+          }}
+          className="p-1 rounded hover:bg-gray-100"
+          title="New folder"
+        >
+          <Plus />
+        </button>
       )}
+    </div>
+
+    {/* “All” */}
+    <button
+      onClick={() => setSelectedFolder(null)}
+      className={`block w-full text-left px-3 py-1 rounded mb-2 ${
+        selectedFolder === null ? "bg-indigo-600 text-white" : "hover:bg-gray-100"
+      }`}
+    >
+      All
+    </button>
+
+    {/* 真正的 folder 列表，每一行右侧加了删除按钮 */}
+    <div className="space-y-2">
+      {folders.map(f => (
+        <div key={f.id} className="flex items-center justify-between">
+          <button
+            onClick={() => setSelectedFolder(f.id)}
+            className={`flex-1 text-left px-3 py-1 rounded ${
+              selectedFolder === f.id ? "bg-indigo-600 text-white" : "hover:bg-gray-100"
+            }`}
+          >
+            {f.name}
+          </button>
+          <button
+            onClick={() => handleDeleteFolder(f.id)}
+            className="p-1 ml-2 text-red-500 hover:bg-red-100 rounded"
+            title="Delete folder"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  </aside>
+)}
 
       {/* —— Toggle 按钮 —— */}
       <div
