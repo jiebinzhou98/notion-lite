@@ -335,6 +335,18 @@ return (
         {selectedNoteId ? (
           <NoteDetailEditor
             id={selectedNoteId}
+            folders={folders}
+            selectedFolder={selectedFolder}
+            onMoveFolder={(newId) =>{
+                setNotes((ns) => 
+                    ns.map((n) => 
+                        n.id === selectedNoteId ? { ...n, folder_id: newId } : n
+                    )   
+                )
+                setSelectedFolder(newId)
+                router.replace(`/explore?selected=${selectedNoteId}`)
+
+            }}
             onUpdate={({ title, excerpt }) =>
               setNotes((ns) =>
                 ns.map((n) =>

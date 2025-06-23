@@ -14,17 +14,27 @@ export default function ExploreClient() {
   const pathname = usePathname()
   const selectedFromUrl = searchParams.get("selected")
 
-  const [notes, setNotes] = useState<NoteSummary[]>([])
+  // Extend NoteSummary with folder_id
+  interface NoteSummaryWithFolder extends NoteSummary {
+    folder_id: string | null
+  }
+
+  // Notes state
+  const [notes, setNotes] = useState<NoteSummaryWithFolder[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
 
-  // 同步 URL -> state
+  // Folders state
+  const [folders, setFolders] = useState<{ id: string; name: string }[]>([])
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+
+  // Sync URL → state
   useEffect(() => {
     if (selectedFromUrl) setSelectedNoteId(selectedFromUrl)
   }, [selectedFromUrl])
 
-  // Resize -> 跳转 mobile
+  // Mobile redirect
   useEffect(() => {
     function onResize() {
       if (window.innerWidth < 768 && selectedNoteId && selectedFromUrl) {
@@ -36,11 +46,29 @@ export default function ExploreClient() {
     return () => window.removeEventListener("resize", onResize)
   }, [selectedNoteId, router, selectedFromUrl])
 
-  // 拉数据
+  // Fetch folders
+  useEffect(() => {
+    supabase
+      .from("folders")
+      .select("id, name")
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) console.error("Fetch folders error:", error)
+        else {
+          setFolders(data || [])
+          // Default to first folder (or null=All)
+          if (!selectedFolder && data?.length) {
+            setSelectedFolder(data[0].id)
+          }
+        }
+      })
+  }, [])
+
+  // Fetch notes
   useEffect(() => {
     supabase
       .from("notes")
-      .select("id, title, created_at, content, is_pinned")
+      .select("id, title, created_at, content, is_pinned, folder_id")
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
@@ -50,47 +78,56 @@ export default function ExploreClient() {
             try {
               const p = item.content?.content?.find((b: any) => b.type === "paragraph")
               excerpt = p?.content?.[0]?.text || ""
-            } catch { }
+            } catch {}
             return {
               id: item.id,
               title: item.title,
               created_at: item.created_at,
               excerpt,
               is_pinned: item.is_pinned,
+              folder_id: item.folder_id,
             }
           })
           setNotes(list)
-          if (selectedFromUrl) {
-            setSelectedNoteId(selectedFromUrl)
-          } else if (list.length > 0) {
-            setSelectedNoteId(list[0].id)
-          }
+          // select initial note
+          if (selectedFromUrl) setSelectedNoteId(selectedFromUrl)
+          else if (list.length > 0) setSelectedNoteId(list[0].id)
         }
         setLoading(false)
       })
   }, [selectedFromUrl])
 
-  // 过滤
-  const filtered = notes.filter(n => {
-    const q = searchTerm.toLowerCase()
-    return n.title.toLowerCase().includes(q)
-      || (n.excerpt || "").toLowerCase().includes(q)
-  })
+  // Filter notes by folder + search
+  const filtered = notes
+    .filter(n => selectedFolder === null || n.folder_id === selectedFolder)
+    .filter(n => {
+      const q = searchTerm.toLowerCase()
+      return (
+        n.title.toLowerCase().includes(q) ||
+        (n.excerpt || "").toLowerCase().includes(q)
+      )
+    })
 
-  // 新建
+  // Create note in current folder
   const createNote = async () => {
     const { data, error } = await supabase
       .from("notes")
-      .insert({ title: "", content: { type: "doc", content: [] }, is_pinned: false })
+      .insert({
+        title: "",
+        content: { type: "doc", content: [] },
+        is_pinned: false,
+        folder_id: selectedFolder,
+      })
       .select()
       .single()
     if (data) {
-      const newN: NoteSummary = {
+      const newN: NoteSummaryWithFolder = {
         id: data.id,
         title: data.title,
         created_at: data.created_at,
         excerpt: "",
-        is_pinned: false,
+        is_pinned: data.is_pinned,
+        folder_id: data.folder_id,
       }
       setNotes(prev => [newN, ...prev])
       setSelectedNoteId(data.id)
@@ -98,14 +135,7 @@ export default function ExploreClient() {
     }
   }
 
-  // 监听 ?new=1
-  useEffect(() => {
-    if (pathname === "/explore" && searchParams.get("new") === "1") {
-      createNote()
-    }
-  }, [pathname, searchParams])
-
-  // 删除
+  // Delete note
   const deleteNote = async (id: string) => {
     if (!confirm("Delete?")) return
     await supabase.from("notes").delete().eq("id", id)
@@ -115,44 +145,108 @@ export default function ExploreClient() {
     }
   }
 
+  // Handle new=1
+  useEffect(() => {
+    if (pathname === "/explore" && searchParams.get("new") === "1") {
+      createNote()
+    }
+  }, [pathname, searchParams])
+
   if (loading) return <div>Loading…</div>
 
   return (
     <div className="flex h-screen">
-      <aside className="w-full md:w-[300px] p-4 overflow-y-auto border-r">
-        <input
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Search..."
-          className="w-full mb-4 p-2 border rounded"
-        />
-        {filtered.map(n => (
-          <NoteCard
-            key={n.id}
-            note={n}
-            isActive={n.id === selectedNoteId}
-            onSelect={setSelectedNoteId}
-            onTogglePin={() => {
-              setNotes(prev =>
-                prev
-                  .map(x => x.id === n.id ? { ...x, is_pinned: !x.is_pinned } : x)
-                  .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0))
-              )
-            }}
+      {/* Folders panel */}
+      <aside className="w-full md:w-64 p-4 bg-white/90 border-r overflow-y-auto">
+        <h3 className="mb-2 font-semibold">Folders</h3>
+        <div className="space-y-1 mb-4">
+          <button
+            onClick={() => setSelectedFolder(null)}
+            className={`block w-full text-left px-3 py-1 rounded ${
+              selectedFolder === null ? "bg-indigo-600 text-white" : "hover:bg-gray-100"
+            }`}
+          >
+            All
+          </button>
+          {folders.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setSelectedFolder(f.id)}
+              className={`block w-full text-left px-3 py-1 rounded ${
+                selectedFolder === f.id ? "bg-indigo-600 text-white" : "hover:bg-gray-100"
+              }`}
+            >
+              {f.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Search & New */}
+        <div className="flex mb-4 space-x-2">
+          <input
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search notes..."
+            className="flex-1 px-3 py-2 border rounded"
           />
-        ))}
-        <button onClick={createNote} className="mt-4 p-2 bg-indigo-600 text-white rounded">
-          + New
-        </button>
+          <button
+            onClick={createNote}
+            className="w-10 h-10 bg-indigo-600 text-white rounded flex items-center justify-center"
+            title="New note"
+          >
+            <Plus />
+          </button>
+        </div>
+
+        {/* Note list */}
+        {filtered.length === 0 ? (
+          <p className="text-sm text-gray-500">No notes</p>
+        ) : (
+          filtered.map(n => (
+            <NoteCard
+              key={n.id}
+              note={n}
+              isActive={n.id === selectedNoteId}
+              onSelect={setSelectedNoteId}
+              onTogglePin={() => {
+                setNotes(prev =>
+                  prev
+                    .map(x => x.id === n.id ? { ...x, is_pinned: !x.is_pinned } : x)
+                    .sort((a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0))
+                )
+              }}
+            />
+          ))
+        )}
       </aside>
-      <main className="hidden md:flex-1 md:flex md:flex-col md:overflow-y-auto p-6">
-        {selectedNoteId
-          ? <NoteDetailEditor id={selectedNoteId} onDelete={deleteNote} onUpdate={({ title, excerpt }) => {
-              setNotes(ns => ns.map(x => x.id === selectedNoteId ? { ...x, title, excerpt } : x))
+
+      {/* Editor */}
+      <main className="hidden md:flex-1 md:flex md:flex-col p-6 overflow-y-auto bg-white/40">
+        {selectedNoteId ? (
+          <NoteDetailEditor
+            id={selectedNoteId}
+            folders={folders}
+            selectedFolder={selectedFolder}
+            onMoveFolder={(newId) => {
+              // update note locally
+              setNotes(ns =>
+                ns.map(x => x.id === selectedNoteId ? { ...x, folder_id: newId } : x)
+              )
+              // switch to that folder
+              setSelectedFolder(newId)
+              // update URL
+              router.replace(`/explore?selected=${selectedNoteId}`)
             }}
+            onDelete={deleteNote}
+            onUpdate={({ title, excerpt }) =>
+              setNotes(ns =>
+                ns.map(x => x.id === selectedNoteId ? { ...x, title, excerpt } : x)
+              )
+            }
           />
-          : <p>Select a note</p>
-        }
+        ) : (
+          <p className="text-gray-500">Select a note</p>
+        )}
       </main>
     </div>
   )
