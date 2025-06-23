@@ -175,16 +175,9 @@ export default function NoteDetailEditor({
               placeholder="Untitled"
               className="flex-1 text-4xl font-semibold outline-none bg-transparent"
             />
-            <button
-              onClick={() => onDelete?.(id)}
-              className="ml-4 p-1 rounded hover:bg-red-100 transition"
-            >
-              <Trash2 className="w-5 h-5 text-red-500" />
-            </button>
-          </div>
 
-          {/* 文件夹下拉 */}
-          <div className="flex items-center gap-2">
+                        {/* 文件夹下拉 */}
+          <div className="flex items-center mx-4">
             <label className="text-sm font-medium whitespace-nowrap">
               Folder:
             </label>
@@ -201,6 +194,15 @@ export default function NoteDetailEditor({
               ))}
             </select>
           </div>
+
+            <button
+              onClick={() => onDelete?.(id)}
+              className="ml-4 p-1 rounded hover:bg-red-100 transition"
+            >
+              <Trash2 className="w-5 h-5 text-red-500" />
+            </button>
+          </div>
+
 
           {/* 工具栏 + 保存状态 */}
           <div className="flex items-center justify-between gap-3 border-b pb-2">
