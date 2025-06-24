@@ -8,7 +8,8 @@ import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
-
+import Highlight from '@tiptap/extension-highlight'
+import { Eraser } from "lucide-react"
 // 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -48,7 +49,13 @@ export default function NoteDetailEditor({
   const isValidDoc = initialContent?.type === "doc"
   const editor = useEditor(
     {
-      extensions: [StarterKit, LineHeight],
+      extensions: [
+        StarterKit, 
+        LineHeight,
+        Highlight.configure({
+          multicolor:true,
+        })
+      ],
       content: isValidDoc ? initialContent : fallbackDoc,
       editable: true,
       onUpdate({ editor }) {
@@ -254,6 +261,31 @@ export default function NoteDetailEditor({
                   {lh}
                 </button>
               ))}
+              {/* 黄色highligh */}
+              <button
+                onClick={() =>editor.chain().focus().toggleHighlight({color: '#fff59d'}).run()}
+                className={`p-1 rounded ${editor.isActive('highligh',{color: '#fff59d'}) ? 'bg-gray-200' : ''}`}
+                title="Yellow highlight"
+              >
+                <span className="inline-block w-4 h-1 bg-yellow-300"/>
+              </button>
+              {/* 红色highlight */}
+              <button
+                onClick={() => editor.chain().focus().toggleHighlight({color: '#ef9a9a'}).run()}
+                className={`p-1 rounded ${editor.isActive('highligh', {color: '#ef9a9a'}) ? 'bg-gray-200': ''}`}
+                title="Red highlight"
+              >
+                <span className="inline-block w-4 h-1 bg-red-300"/>
+              </button>
+              {/* 移除highligh */}
+              <button
+                onClick={() => editor.chain().focus().unsetHighlight().run()}
+                className="p-1 rounded hover:bg-gray-200"
+                title="Remove highlight"
+              >
+                <Eraser className="w-5 h-5 text-gray-500"/>
+              </button>
+
             </div>
             <p className="text-xs text-gray-500">{savingStatus}</p>
           </div>
