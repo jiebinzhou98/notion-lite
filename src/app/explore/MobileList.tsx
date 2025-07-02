@@ -95,6 +95,7 @@ export default function MobileList() {
     await supabase.from('folders').delete().eq('id', id)
     setFolders((f) => f.filter((x) => x.id !== id))
     setSelectedFolder(null) // 跳回 All
+    setShowFolderMenu(false)
   }
 
   if (loading) {
@@ -156,36 +157,32 @@ export default function MobileList() {
                     </button>
                   </li>
                 ))}
-                <li className="px-3 py-2">
-                  {creatingFolder ? (
-                    <div className="flex space-x-2">
-                      <input
-                        ref={inputRef}
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && confirmCreateFolder()}
-                        className="flex-1 border px-2 py-1 rounded"
-                        placeholder="New folder..."
-                      />
-                      <button onClick={confirmCreateFolder} className="text-green-600">
-                        ✔️
-                      </button>
-                      <button onClick={() => setCreatingFolder(false)} className="text-gray-600">
-                        ✖️
-                      </button>
-                    </div>
-                  ) : (
+                <li className='px-3 py-2'>
                     <button
-                      onClick={() => {
-                        setCreatingFolder(true)
-                        setTimeout(() => inputRef.current?.focus(), 0)
-                      }}
-                      className="flex items-center space-x-1 text-indigo-600"
+                        onClick={async () => {
+                            const name = window.prompt("Enter new folder name:")
+                            if(name && name.trim()){
+                                try {
+                                    const {data, error} = await supabase
+                                        .from('folders')
+                                        .insert({name: name.trim()})
+                                        .select()
+                                        .single()
+                                    if(error) throw error
+                                    setFolders((f) => [...f, data!])
+                                    setSelectedFolder(data!.id)
+                                    setShowFolderMenu(false)
+                                }catch (err){
+                                    console.error("Error creating folder:", err)
+                                    alert("Failed to create folder. Please try again.")
+                                }
+                            }
+                        }}
+                        className='flex item-center space-x-1 text-indigo-600 hover:bg-gray-100 px-2 py-1 rounded'
                     >
-                      <Plus className="w-4 h-4" />
-                      <span>New Folder</span>
+                        <Plus className='w-4 h-4'/>
+                        <span>New Folder</span>
                     </button>
-                  )}
                 </li>
               </ul>
             </div>
