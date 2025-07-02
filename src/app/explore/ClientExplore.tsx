@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import ExploreDesktop from './ExploreDesktop'
+import MobileList from './MobileList';
 
 export default function ClientExplore() {
   const [isMobile, setIsMobile] = useState(false)
@@ -21,6 +22,10 @@ export default function ClientExplore() {
   if (isMobile && selected) {
     router.replace(`/explore/${selected}`)
     return null
+  }
+    
+  if (isMobile && !selected){
+    return <MobileList />
   }
 
   // 其它情况都渲染桌面版
