@@ -1,17 +1,18 @@
 'use client'
-import React, { Suspense } from 'react'
+// src/app/explore/page.tsx
+
 import dynamic from 'next/dynamic'
 
-// 用 suspense 模式动态加载客户端组件
-const ClientExplorePage = dynamic(
-  () => import('./ClientExplorePage'),
+// ensure this route is never statically prerendered
+// export const dynamicMode = 'force-dynamic'
+
+// load your client‐only explorer UI
+const ClientExplore = dynamic(
+  () => import('./ClientExplore'),
   { ssr: false }
 )
 
 export default function ExplorePage() {
-  return (
-    <Suspense fallback={<div className="p-4 text-center">Loading Note list…</div>}>
-      <ClientExplorePage />
-    </Suspense>
-  )
+  // server component simply hands off to the client bundle
+  return <ClientExplore />
 }

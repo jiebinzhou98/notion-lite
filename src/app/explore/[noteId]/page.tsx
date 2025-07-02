@@ -7,7 +7,7 @@ import { useEffect, useState, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { ArrowLeft, Plus, Trash2, Menu } from "lucide-react"
 
-export default function MobileNotePage() {
+export default function ExploreMobile() {
   const router = useRouter()
   const { noteId } = useParams() ?? {}
 
@@ -120,7 +120,8 @@ export default function MobileNotePage() {
   }
 
   // ——— 渲染 —————————————————————————————————————
-  if (loading || !noteId) {
+  // 1) 还在 loading 的时候，显示 Loading
+  if (loading) {
     return (
       <div className="h-screen flex flex-col">
         <header className="flex items-center gap-2 px-4 py-3 border-b bg-white">
@@ -134,6 +135,13 @@ export default function MobileNotePage() {
       </div>
     )
   }
+
+  // 2) 加载完了但没有 noteId，就回到列表
+  if (!noteId) {
+    router.replace("/explore")
+    return null
+  }
+
 
   return (
     <div className="h-screen flex flex-col">

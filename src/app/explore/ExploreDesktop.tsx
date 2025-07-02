@@ -6,7 +6,7 @@ import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
 import { Plus, Edit, ChevronsLeft, ChevronsRight, Trash2 } from "lucide-react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 
-export default function ClientExplorePage() {
+export default function ExploreDesktop() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const pathname = usePathname()
