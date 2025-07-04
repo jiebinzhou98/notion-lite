@@ -66,7 +66,7 @@ export default function DesktopNavbar({
     }, [folderMenuOpen])
 
     return (
-        <nav className="flex items-center px-6 py-3 border-b bg-white shadow-sm select-none">
+        <nav className="fixed top-0 left-0 right-0 h-14 flex items-center px-6 py-3 border-b bg-white shadow-sm z-50 select-none">
           {/* folder 菜单按钮 */}
           <button
             onClick={() => setFolderMenuOpen(open => !open)}
