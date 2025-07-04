@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
 import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
-import { Plus, Edit, ChevronsLeft, ChevronsRight, Trash2 } from "lucide-react"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import DesktopNavbar from "@/components/ui/DesktopNavbar"
 
 export default function ExploreDesktop() {
     const router = useRouter()
@@ -216,169 +216,89 @@ export default function ExploreDesktop() {
         )
     }
 
+
     return (
-        <div className="flex h-screen">
-            {drawerOpen && (
-                <aside className="w-64 p-4 bg-white/95 border-r border-gray-200 shadow-lg overflow-y-auto">
-                    {/* 标题 + 新建 */}
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-gray-700">Folders</h3>
-                        {creatingFolder ? (
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    ref={folderInputRef}
-                                    value={newFolderName}
-                                    onChange={e => setNewFolderName(e.target.value)}
-                                    onKeyDown={e => e.key === "Enter" && confirmCreateFolder()}
-                                    className="flex-1 px-2 py-1 border border-indigo-300 focus:ring-2 focus:ring-indigo-200 rounded text-sm placeholder-gray-400"
-                                    placeholder="New folder..."
+        <div className="flex flex-col h-screen">
+            <DesktopNavbar
+                folders={folders}
+                selectedFolder={selectedFolder}
+                onSelectFolder={setSelectedFolder}
+                onDeleteFolder={handleDeleteFolder}
+                onCreateFolder={() => setCreatingFolder(true)}
+                onCreateNote={handleCreateNote}
+                onSearch={(query) => setSearchTerm(query)}
+                searchValue={searchTerm}
+                setSearchValue={setSearchTerm}
+                title="Explore Notes"
+            />
+
+            <div className="flex h-screen">
+
+
+                {/* 笔记列表，移除了搜索框和创建新笔记按钮 */}
+                <aside className="flex-shrink-0 w-full md:w-80 p-4 bg-white/80 overflow-y-auto">
+                    {filteredNotes.length === 0 ? (
+                        <p className="text-sm text-gray-500">No matching notes</p>
+                    ) : (
+                        filteredNotes.map((note) => (
+                            <div key={note.id} className="mb-3">
+                                <NoteCard
+                                    note={note}
+                                    isActive={note.id === selectedNoteId}
+                                    onSelect={setSelectedNoteId}
+                                    onTogglePin={() => {
+                                        setNotes((p) =>
+                                            [...p]
+                                                .map((n) =>
+                                                    n.id === note.id ? { ...n, is_pinned: !n.is_pinned } : n
+                                                )
+                                                .sort((a, b) =>
+                                                    a.is_pinned === b.is_pinned
+                                                        ? new Date(b.created_at).getTime() -
+                                                        new Date(a.created_at).getTime()
+                                                        : b.is_pinned
+                                                            ? 1
+                                                            : -1
+                                                )
+                                        )
+                                    }}
                                 />
-                                <button onClick={confirmCreateFolder} className="text-indigo-600 hover:text-indigo-800">✔️</button>
-                                <button onClick={() => setCreatingFolder(false)} className="text-gray-400 hover:text-gray-600">✖️</button>
                             </div>
-                        ) : (
-                            <button
-                                onClick={() => {
-                                    setCreatingFolder(true)
-                                    setTimeout(() => folderInputRef.current?.focus(), 0)
-                                }}
-                                className="p-1 rounded text-indigo-600 hover:bg-indigo-50"
-                                title="New folder"
-                            >
-                                <Plus />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* “All” */}
-                    <button
-                        onClick={() => setSelectedFolder(null)}
-                        className={`flex justify-between w-full px-3 py-2 rounded ${selectedFolder === null ? "bg-indigo-600 text-white" : "hover:bg-gray-100"
-                            }`}
-                    >
-                        All
-                    </button>
-
-                    {/* 真正的 folder 列表，每一行右侧加了删除按钮 */}
-                    <div className="space-y-2">
-                        {folders.map(f => (
-                            <div key={f.id} className="flex items-center justify-between">
-                                <button
-                                    onClick={() => setSelectedFolder(f.id)}
-                                    className={`flex-1 text-left px-3 py-2 rounded ${selectedFolder === f.id ? "bg-indigo-600 text-white" : "hover:bg-gray-100"
-                                        }`}
-                                >
-                                    {f.name}
-                                </button>
-                                <button
-                                    onClick={() => handleDeleteFolder(f.id)}
-                                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
-                                    title="Delete folder"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
+                        ))
+                    )}
                 </aside>
-            )}
 
-            {/* —— Toggle 按钮 —— */}
-            <div
-                onClick={() => setDrawerOpen((o) => !o)}
-                className="flex items-center justify-center cursor-pointer select-none
-                   bg-white/90 border-gray-200 border-y border-l
-                   px-2 hover:bg-gray-100 transition"
-                title={drawerOpen ? "Hide folders" : "Show folders"}
-            >
-                {drawerOpen ? <ChevronsLeft /> : <ChevronsRight />}
-            </div>
-
-            {/* —— 笔记列表 —— */}
-            <aside className="flex-shrink-0 w-full md:w-80 p-4 bg-white/80 overflow-y-auto">
-                <div className="flex items-center mb-4 space-x-2">
-                    <div className="relative flex-1">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search notes..."
-                            className="w-full pl-10 pr-4 py-2 rounded-full border text-sm shadow-sm"
-                        />
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            🔍
-                        </span>
-                    </div>
-                    <button
-                        onClick={handleCreateNote}
-                        className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-indigo-500"
-                        title="New note"
-                    >
-                        <Edit className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {filteredNotes.length === 0 ? (
-                    <p className="text-sm text-gray-500">No matching notes</p>
-                ) : (
-                    filteredNotes.map((note) => (
-                        <div key={note.id} className="mb-3">
-                            <NoteCard
-                                note={note}
-                                isActive={note.id === selectedNoteId}
-                                onSelect={setSelectedNoteId}
-                                onTogglePin={() => {
-                                    setNotes((p) =>
-                                        [...p]
-                                            .map((n) =>
-                                                n.id === note.id ? { ...n, is_pinned: !n.is_pinned } : n
-                                            )
-                                            .sort((a, b) =>
-                                                a.is_pinned === b.is_pinned
-                                                    ? new Date(b.created_at).getTime() -
-                                                    new Date(a.created_at).getTime()
-                                                    : b.is_pinned
-                                                        ? 1
-                                                        : -1
-                                            )
+                {/* 编辑器区域保持不变 */}
+                <main className="flex-1 p-6 bg-white/40 overflow-auto">
+                    {selectedNoteId ? (
+                        <NoteDetailEditor
+                            id={selectedNoteId}
+                            folders={folders}
+                            selectedFolder={selectedFolder}
+                            onMoveFolder={(newId) => {
+                                setNotes((ns) =>
+                                    ns.map((n) =>
+                                        n.id === selectedNoteId ? { ...n, folder_id: newId } : n
                                     )
-                                }}
-                            />
-                        </div>
-                    ))
-                )}
-            </aside>
-
-            {/* —— 编辑器 区 —— */}
-            <main className="flex-1 p-6 bg-white/40 overflow-auto">
-                {selectedNoteId ? (
-                    <NoteDetailEditor
-                        id={selectedNoteId}
-                        folders={folders}
-                        selectedFolder={selectedFolder}
-                        onMoveFolder={(newId) => {
-                            setNotes((ns) =>
-                                ns.map((n) =>
-                                    n.id === selectedNoteId ? { ...n, folder_id: newId } : n
                                 )
-                            )
-                            setSelectedFolder(newId)
-                            router.replace(`/explore?selected=${selectedNoteId}`)
-
-                        }}
-                        onUpdate={({ title, excerpt }) =>
-                            setNotes((ns) =>
-                                ns.map((n) =>
-                                    n.id === selectedNoteId ? { ...n, title, excerpt } : n
+                                setSelectedFolder(newId)
+                                router.replace(`/explore?selected=${selectedNoteId}`)
+                            }}
+                            onUpdate={({ title, excerpt }) =>
+                                setNotes((ns) =>
+                                    ns.map((n) =>
+                                        n.id === selectedNoteId ? { ...n, title, excerpt } : n
+                                    )
                                 )
-                            )
-                        }
-                        onDelete={handleDelete}
-                    />
-                ) : (
-                    <p className="text-gray-500">Select or create a note</p>
-                )}
-            </main>
+                            }
+                            onDelete={handleDelete}
+                        />
+                    ) : (
+                        <p className="text-gray-500">Select or create a note</p>
+                    )}
+                </main>
+            </div>
         </div>
     )
+
 }
