@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Plus, Menu, Search, Trash2 } from "lucide-react"
-import AuthButton from "@/components/AuthButton"
 
 interface Folder {
   id: string
@@ -160,11 +159,6 @@ export default function DesktopNavbar({
               className="w-full pl-9 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
-          </div>
-
-          {/* 登录按钮 */}
-          <div className="ml-6">
-            <AuthButton />
           </div>
         </nav>
     )
