@@ -63,6 +63,7 @@ export default function NoteDetailEditor({
         setLatestContent(json)
         setSavingStatus("Saving...")
       },
+
     },
     [initialContent]
   )
@@ -292,7 +293,15 @@ export default function NoteDetailEditor({
 
           {/* 编辑区 */}
           <div className="pt-4 prose prose-lg min-h-[60vh] focus-within:outline-none">
-            <EditorContent editor={editor} />
+            <EditorContent 
+              editor={editor}
+              onKeyDown={(e) => {
+                if(e.key === "Tab" && editor){
+                  e.preventDefault()
+                  editor.chain().focus().insertContent("    ").run()
+                }
+              }}
+            />
           </div>
         </>
       )}
