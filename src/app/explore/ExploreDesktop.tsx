@@ -166,15 +166,15 @@ export default function ExploreDesktop() {
     }
 
     // confirm creation of a new folder
-    async function confirmCreateFolder() {
-        const name = newFolderName.trim()
-        if (!name) {
+    async function confirmCreateFolder(name: string) {
+        const trimmedName = name.trim()
+        if (!trimmedName) {
             setCreatingFolder(false)
             return
         }
         const { data, error } = await supabase
             .from("folders")
-            .insert({ name })
+            .insert({ name: trimmedName})
             .select()
             .single()
         if (error || !data) {
@@ -224,7 +224,7 @@ export default function ExploreDesktop() {
                 selectedFolder={selectedFolder}
                 onSelectFolder={setSelectedFolder}
                 onDeleteFolder={handleDeleteFolder}
-                onCreateFolder={() => setCreatingFolder(true)}
+                onCreateFolder= {confirmCreateFolder}
                 onCreateNote={handleCreateNote}
                 onSearch={(query) => setSearchTerm(query)}
                 searchValue={searchTerm}
