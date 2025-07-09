@@ -39,127 +39,145 @@ export default function DesktopNavbar({
     const [creatingFolder, setCreatingFolder] = useState(false)
     const [newFolderName, setNewFolderName] = useState("")
 
-    // 确认新建文件夹
     function confirmCreateFolder() {
       const name = newFolderName.trim()
-      if (!name) return setCreatingFolder(false)
+      if (!name) {
+        setCreatingFolder(false)
+        setNewFolderName("")
+        return
+      }
       onCreateFolder(name)
       setNewFolderName("")
       setCreatingFolder(false)
-      setFolderMenuOpen(false)
+      if (!folderMenuOpen) setFolderMenuOpen(true)
     }
 
-    // 点击外部关闭菜单（简单示意）
     useEffect(() => {
       function onClickOutside(e: MouseEvent) {
-        if (!(e.target as HTMLElement).closest("#folder-menu")) {
+        const target = e.target as HTMLElement
+        if (!target.closest("#folder-menu") && !target.closest("#folder-input-wrapper")) {
           setFolderMenuOpen(false)
           setCreatingFolder(false)
           setNewFolderName("")
         }
       }
-      if (folderMenuOpen) {
+      if (folderMenuOpen || creatingFolder) {
         document.addEventListener("click", onClickOutside)
       }
       return () => document.removeEventListener("click", onClickOutside)
-    }, [folderMenuOpen])
+    }, [folderMenuOpen, creatingFolder])
+
+    useEffect(() => {
+      if (creatingFolder) {
+        setFolderMenuOpen(true)
+        setTimeout(() => inputRef.current?.focus(), 100)
+      }
+    }, [creatingFolder])
 
     return (
-        <nav className="fixed top-0 left-0 right-0 h-14 flex items-center px-6 py-3 border-b bg-white shadow-sm z-50 select-none">
-          {/* folder 菜单按钮 */}
+      <nav className="fixed top-0 left-0 right-0 h-14 flex items-center px-6 py-3 border-b bg-white shadow-sm z-50 select-none">
+        {/* 文件夹菜单按钮 */}
+        <button
+          onClick={() => setFolderMenuOpen(open => !open)}
+          aria-label="Toggle folders"
+          className="p-2 rounded hover:bg-gray-100 relative"
+        >
+          <Menu className="w-6 h-6 text-gray-700" />
+        </button>
+
+{folderMenuOpen && (
+  <div
+    id="folder-menu"
+    className="absolute top-full mt-1 left-0 w-56 bg-white border rounded shadow-lg z-50"
+  >
+    <div className="max-h-72 overflow-y-auto">
+      <button
+        onClick={() => onSelectFolder(null)}
+        className={`block w-full text-left px-3 py-2 rounded ${selectedFolder === null ? "bg-indigo-100" : "hover:bg-gray-100"}`}
+      >
+        All
+      </button>
+      {folders.map(folder => (
+        <div key={folder.id} className="flex items-center justify-between">
           <button
-            onClick={() => setFolderMenuOpen(open => !open)}
-            aria-label="Toggle folders"
-            className="p-2 rounded hover:bg-gray-100 relative"
+            onClick={() => onSelectFolder(folder.id)}
+            className={`flex-1 text-left px-3 py-2 rounded ${selectedFolder === folder.id ? "bg-indigo-100" : "hover:bg-gray-100"}`}
           >
-            <Menu className="w-6 h-6 text-gray-700" />
-            {folderMenuOpen && (
-              <div
-                id="folder-menu"
-                className="absolute top-full mt-1 left-0 w-56 bg-white border rounded shadow-lg z-50"
-              >
-                {/* 文件夹列表 */}
-                <div className="max-h-72 overflow-y-auto">
-                  <button
-                    onClick={() => { onSelectFolder(null); setFolderMenuOpen(false) }}
-                    className={`block w-full text-left px-3 py-2 rounded ${selectedFolder === null ? "bg-indigo-100" : "hover:bg-gray-100"}`}
-                  >
-                    All
-                  </button>
-                  {folders.map(folder => (
-                    <div key={folder.id} className="flex items-center justify-between">
-                      <button
-                        onClick={() => { onSelectFolder(folder.id); setFolderMenuOpen(false) }}
-                        className={`flex-1 text-left px-3 py-2 rounded ${selectedFolder === folder.id ? "bg-indigo-100" : "hover:bg-gray-100"}`}
-                      >
-                        {folder.name}
-                      </button>
-                      <button
-                        onClick={() => onDeleteFolder(folder.id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded"
-                        title="Delete folder"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* 新建文件夹 */}
-                <div className="border-t p-2">
-                  {creatingFolder ? (
-                    <div className="flex space-x-2">
-                      <input
-                        ref={inputRef}
-                        autoFocus
-                        value={newFolderName}
-                        onChange={e => setNewFolderName(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && confirmCreateFolder()}
-                        placeholder="New folder..."
-                        className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                      />
-                      <button onClick={confirmCreateFolder} className="text-green-600 font-bold px-2">✔</button>
-                      <button onClick={() => { setCreatingFolder(false); setNewFolderName("") }} className="text-gray-600 font-bold px-2">✖</button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setCreatingFolder(true)}
-                      className="w-full text-indigo-600 text-left text-sm hover:underline"
-                    >
-                      + New Folder
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+            {folder.name}
           </button>
-
-          {/* 标题 */}
-          <h1 className="ml-4 text-xl font-semibold truncate max-w-xs">{title || 'My Notes'}</h1>
-
-          {/* 新建笔记 */}
           <button
-            onClick={onCreateNote}
-            aria-label="Create new note"
-            className="ml-4 p-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center"
+            onClick={() => onDeleteFolder(folder.id)}
+            className="p-2 text-red-500 hover:bg-red-50 rounded"
+            title="Delete folder"
           >
-            <Plus className="w-5 h-5"/>
+            <Trash2 className="w-4 h-4" />
           </button>
+        </div>
+      ))}
 
-          {/* 搜索框 */}
-          <div className="ml-auto relative max-w-xs w-full">
+      {/* 新建文件夹按钮，点击显示输入框 */}
+      {!creatingFolder && (
+        <button
+          onClick={() => setCreatingFolder(true)}
+          className="block w-full text-left px-3 py-2 text-indigo-600 hover:underline border-t"
+        >
+          + New Folder
+        </button>
+      )}
+    </div>
+  </div>
+)}
+
+
+        {/* 新建文件夹输入框（独立显示） */}
+        {creatingFolder && (
+          <div
+            id="folder-input-wrapper"
+            className="absolute top-full mt-1 left-0 w-56 bg-white border rounded shadow-lg z-50 p-2"
+            style={{ marginLeft: '40px' }}
+          >
             <input
-              type="text"
-              placeholder="Search notes..."
-              value={searchValue}
-              onChange={e => {
-                setSearchValue(e.target.value)
-                onSearch(e.target.value)
-              }}
-              className="w-full pl-9 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              ref={inputRef}
+              autoFocus
+              value={newFolderName}
+              onChange={e => setNewFolderName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && confirmCreateFolder()}
+              placeholder="New folder name"
+              className="w-full border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
+            <div className="mt-1 flex justify-end space-x-2">
+              <button onClick={confirmCreateFolder} className="text-green-600 font-bold px-2">✔</button>
+              <button onClick={() => { setCreatingFolder(false); setNewFolderName("") }} className="text-gray-600 font-bold px-2">✖</button>
+            </div>
           </div>
-        </nav>
+        )}
+
+        {/* 标题 */}
+        <h1 className="ml-4 text-xl font-semibold truncate max-w-xs">{title || 'My Notes'}</h1>
+
+        {/* 新建笔记 */}
+        <button
+          onClick={onCreateNote}
+          aria-label="Create new note"
+          className="ml-4 p-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center"
+        >
+          <Plus className="w-5 h-5"/>
+        </button>
+
+        {/* 搜索框 */}
+        <div className="ml-auto relative max-w-xs w-full">
+          <input
+            type="text"
+            placeholder="Search notes..."
+            value={searchValue}
+            onChange={e => {
+              setSearchValue(e.target.value)
+              onSearch(e.target.value)
+            }}
+            className="w-full pl-9 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
+        </div>
+      </nav>
     )
 }
