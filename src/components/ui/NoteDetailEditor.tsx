@@ -9,8 +9,9 @@ import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
 import Highlight from '@tiptap/extension-highlight'
-import { Eraser } from "lucide-react"
+import { Eraser, List } from "lucide-react"
 import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
+import clsx from "clsx"
 // 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -58,7 +59,13 @@ export default function NoteDetailEditor({
   const editor = useEditor(
     {
       extensions: [
-        StarterKit,
+        StarterKit.configure({
+          bulletList: {
+            HTMLAttributes: {
+              class: 'list-disc pl-4'
+            }
+          },
+        }),
         LineHeight,
         Highlight.configure({
           multicolor:true,
@@ -316,6 +323,13 @@ export default function NoteDetailEditor({
                   </option>
                 ))}
               </select>
+                      <button
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            className={editor.isActive('bulletList') ? 'is-active' : ''}
+          >
+            <List className="w-5 h-5"/>
+          </button>
+
 
             </div>
             <p className="text-xs text-gray-500">{savingStatus}</p>
