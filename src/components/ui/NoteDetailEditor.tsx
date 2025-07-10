@@ -1,7 +1,7 @@
 // src/components/ui/NoteDetailEditor.tsx
 'use client'
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
@@ -9,9 +9,8 @@ import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
 import Highlight from '@tiptap/extension-highlight'
-import { Eraser, List, Type, AlignJustify } from "lucide-react"
+import { Eraser, List, Type, AlignJustify, Highlighter, ChevronDown } from "lucide-react"
 import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
-import clsx from "clsx"
 // 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -41,6 +40,8 @@ export default function NoteDetailEditor({
   onUpdate?: (payload: { title: string; excerpt: string }) => void
   onDelete?: (id: string) => void
 }) {
+
+
   const [title, setTitle] = useState("")
   const [initialContent, setInitialContent] = useState<JSONContent | null>(null)
   const [latestContent, setLatestContent] = useState<JSONContent | null>(null)
@@ -55,6 +56,26 @@ export default function NoteDetailEditor({
 
   const fontSizes = [12, 14, 16, 18, 20, 22, 24]
   const lineHeights = ['1', '1.5', '2']
+  const highlightColors = [
+    {color: '#fff59d', label: 'Yellow'},
+    {color: '#ef9a9a', label: 'Red'},
+    {color: '#a5d6a7', label: 'Green'},
+  ]
+
+  const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutSide(event: MouseEvent){
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)){
+        setHighlightDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutSide);
+    return() => {
+      document.removeEventListener("mousedown", handleClickOutSide)
+    }
+  }, [])
 
   const isValidDoc = initialContent?.type === "doc"
   const editor = useEditor(
@@ -86,6 +107,7 @@ export default function NoteDetailEditor({
   )
   const currentFontSize = editor?.getAttributes('textStyle').fontSize || ''
   const currentLineHeight = editor?.getAttributes('paragraph').lineHeight || ''
+  const currentHighlightColor = editor?.getAttributes('highligh').color || null;
 
 
 
@@ -273,16 +295,6 @@ export default function NoteDetailEditor({
               >
                 Tab
               </button>
-              {/* {["1", "1.5", "2"].map((lh) => (
-                <button
-                  key={lh}
-                  onClick={() => editor.chain().focus().setLineHeight(lh).run()}
-                  className={`p-1 rounded ${editor.getAttributes("paragraph").lineHeight === lh ? "bg-gray-200" : ""
-                    }`}
-                >
-                  {lh}
-                </button>
-              ))} */}
 
               <div className="flex items-center space-x-1 border border-gray-300 rounded px-2 py-1 hover:border-indigo-400 cursor-pointer">
                 <AlignJustify className="w-4 h-4 text-gray-600" />
@@ -299,30 +311,60 @@ export default function NoteDetailEditor({
                   ))}
                 </select>
               </div>
-              {/* 黄色highligh */}
-              <button
-                onClick={() => editor.chain().focus().toggleHighlight({ color: '#fff59d' }).run()}
-                className={`p-1 rounded ${editor.isActive('highligh', { color: '#fff59d' }) ? 'bg-gray-200' : ''}`}
-                title="Yellow highlight"
-              >
-                <span className="inline-block w-4 h-1 bg-yellow-300" />
-              </button>
-              {/* 红色highlight */}
-              <button
-                onClick={() => editor.chain().focus().toggleHighlight({ color: '#ef9a9a' }).run()}
-                className={`p-1 rounded ${editor.isActive('highligh', { color: '#ef9a9a' }) ? 'bg-gray-200' : ''}`}
-                title="Red highlight"
-              >
-                <span className="inline-block w-4 h-1 bg-red-300" />
-              </button>
-              {/* 移除highligh */}
-              <button
-                onClick={() => editor.chain().focus().unsetHighlight().run()}
-                className="p-1 rounded hover:bg-gray-200"
-                title="Remove highlight"
-              >
-                <Eraser className="w-5 h-5 text-gray-500" />
-              </button>
+{/* 高亮颜色 Dropdown */}
+<div ref={dropdownRef} className="relative inline-block text-left">
+  <button
+    onClick={() => setHighlightDropdownOpen(!highlightDropdownOpen)}
+    className={`inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 hover:border-indigo-400 ${
+      currentHighlightColor ? "bg-gray-200" : "bg-white"
+    }`}
+    title={currentHighlightColor ? `Highlight color: ${currentHighlightColor}` : "Highlight"}
+  >
+    <Highlighter className="w-5 h-5" style={{ color: currentHighlightColor || "black" }} />
+    <ChevronDown className="w-4 h-4" />
+  </button>
+
+  {highlightDropdownOpen && (
+    <div className="absolute mt-1 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+      <div className="py-1">
+        {highlightColors.map(({ color, label }) => (
+          <button
+            key={color}
+            onClick={() => {
+              editor.chain().focus().toggleHighlight({ color }).run()
+              setHighlightDropdownOpen(false)
+            }}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100"
+          >
+            <Highlighter className="w-5 h-5" style={{ color }} />
+            <span>{label}</span>
+          </button>
+        ))}
+
+        <button
+          onClick={() => {
+            editor.chain().focus().unsetHighlight().run()
+            setHighlightDropdownOpen(false)
+          }}
+          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+        >
+          <Highlighter className="w-5 h-5 text-red-600" />
+          <span>Remove Highlight</span>
+        </button>
+      </div>
+    </div>
+  )}
+</div>
+
+
+      {/* 橡皮擦按钮，清除高亮 */}
+    <button
+      onClick={() => editor.chain().focus().unsetHighlight().run()}
+      title="Remove highlight"
+      className="p-1 rounded hover:bg-gray-200"
+    >
+      <Eraser className="w-5 h-5 text-gray-500" />
+    </button>
 
               {/*字体大小*/}
 
