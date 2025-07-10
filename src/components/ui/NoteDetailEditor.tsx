@@ -10,14 +10,20 @@ import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
 import Highlight from '@tiptap/extension-highlight'
 import { Eraser } from "lucide-react"
+import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
 // 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     setLineHeight: {
       setLineHeight: (lineHeight: string) => ReturnType
     }
+    fontSize: {
+      setFontSize: (size: string) => ReturnType
+      unsetFontSize: () => ReturnType
+    }
   }
 }
+
 
 export default function NoteDetailEditor({
   id,
@@ -46,15 +52,18 @@ export default function NoteDetailEditor({
     content: [{ type: "paragraph", content: [{ type: "text", text: "" }] }],
   }
 
+  const fontSizes = [12, 14, 16, 18, 20, 22, 24]
+
   const isValidDoc = initialContent?.type === "doc"
   const editor = useEditor(
     {
       extensions: [
-        StarterKit, 
+        StarterKit,
         LineHeight,
         Highlight.configure({
           multicolor:true,
-        })
+        }),
+        TextStyleExtended,
       ],
       content: isValidDoc ? initialContent : fallbackDoc,
       editable: true,
@@ -67,6 +76,10 @@ export default function NoteDetailEditor({
     },
     [initialContent]
   )
+  const currentFontSize = editor?.getAttributes('textStyle').fontSize || ''
+
+
+
 
   // 移动文件夹
   const handleFolderChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -286,6 +299,23 @@ export default function NoteDetailEditor({
               >
                 <Eraser className="w-5 h-5 text-gray-500"/>
               </button>
+            
+              {/*字体大小*/}
+              <select
+                value={currentFontSize}
+                onChange={(e) => {
+                  const size = e.target.value
+                  editor?.chain().focus().setFontSize(size).run()
+                }}
+                className="border rounded px-2 py-1"
+              >
+                <option value="">Defalt Size</option>
+                {fontSizes.map((size) =>(
+                  <option key={size} value={size.toString()}>
+                    {size}px
+                  </option>
+                ))}
+              </select>
 
             </div>
             <p className="text-xs text-gray-500">{savingStatus}</p>
