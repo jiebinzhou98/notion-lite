@@ -9,7 +9,7 @@ import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
 import Highlight from '@tiptap/extension-highlight'
-import { Eraser, List } from "lucide-react"
+import { Eraser, List, Type, AlignJustify } from "lucide-react"
 import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
 import clsx from "clsx"
 // 扩展 Commands 接口，支持 setLineHeight
@@ -54,6 +54,7 @@ export default function NoteDetailEditor({
   }
 
   const fontSizes = [12, 14, 16, 18, 20, 22, 24]
+  const lineHeights = ['1', '1.5', '2']
 
   const isValidDoc = initialContent?.type === "doc"
   const editor = useEditor(
@@ -68,7 +69,7 @@ export default function NoteDetailEditor({
         }),
         LineHeight,
         Highlight.configure({
-          multicolor:true,
+          multicolor: true,
         }),
         TextStyleExtended,
       ],
@@ -84,6 +85,7 @@ export default function NoteDetailEditor({
     [initialContent]
   )
   const currentFontSize = editor?.getAttributes('textStyle').fontSize || ''
+  const currentLineHeight = editor?.getAttributes('paragraph').lineHeight || ''
 
 
 
@@ -123,18 +125,18 @@ export default function NoteDetailEditor({
   useDebounce(
     () => {
       if (!title.trim()) return
-      ;(async () => {
-        try {
-          const { error } = await supabase
-            .from("notes")
-            .update({ title })
-            .eq("id", id)
-          if (error) throw error
-          setSavingStatus("Saved!")
-        } catch (e) {
-          console.error("Failed saving title", e)
-        }
-      })()
+        ; (async () => {
+          try {
+            const { error } = await supabase
+              .from("notes")
+              .update({ title })
+              .eq("id", id)
+            if (error) throw error
+            setSavingStatus("Saved!")
+          } catch (e) {
+            console.error("Failed saving title", e)
+          }
+        })()
     },
     1000,
     [title]
@@ -152,7 +154,7 @@ export default function NoteDetailEditor({
         return
       }
 
-      ;(async () => {
+      ; (async () => {
         console.log("Saving content to Supabase:", latestContent)
         try {
           const { error } = await supabase
@@ -271,32 +273,47 @@ export default function NoteDetailEditor({
               >
                 Tab
               </button>
-              {["1", "1.5", "2"].map((lh) => (
+              {/* {["1", "1.5", "2"].map((lh) => (
                 <button
                   key={lh}
                   onClick={() => editor.chain().focus().setLineHeight(lh).run()}
-                  className={`p-1 rounded ${
-                    editor.getAttributes("paragraph").lineHeight === lh ? "bg-gray-200" : ""
-                  }`}
+                  className={`p-1 rounded ${editor.getAttributes("paragraph").lineHeight === lh ? "bg-gray-200" : ""
+                    }`}
                 >
                   {lh}
                 </button>
-              ))}
+              ))} */}
+
+              <div className="flex items-center space-x-1 border border-gray-300 rounded px-2 py-1 hover:border-indigo-400 cursor-pointer">
+                <AlignJustify className="w-4 h-4 text-gray-600" />
+                <select
+                  value={currentLineHeight}
+                  onChange={(e) => editor?.chain().focus().setLineHeight(e.target.value).run()}
+                  className="bg-transparent border-none outline-none text-sm cursor-pointer"
+                >
+                  <option value="">Line Height</option>
+                  {lineHeights.map((lh) => (
+                    <option key={lh} value={lh}>
+                      {lh}
+                    </option>
+                  ))}
+                </select>
+              </div>
               {/* 黄色highligh */}
               <button
-                onClick={() =>editor.chain().focus().toggleHighlight({color: '#fff59d'}).run()}
-                className={`p-1 rounded ${editor.isActive('highligh',{color: '#fff59d'}) ? 'bg-gray-200' : ''}`}
+                onClick={() => editor.chain().focus().toggleHighlight({ color: '#fff59d' }).run()}
+                className={`p-1 rounded ${editor.isActive('highligh', { color: '#fff59d' }) ? 'bg-gray-200' : ''}`}
                 title="Yellow highlight"
               >
-                <span className="inline-block w-4 h-1 bg-yellow-300"/>
+                <span className="inline-block w-4 h-1 bg-yellow-300" />
               </button>
               {/* 红色highlight */}
               <button
-                onClick={() => editor.chain().focus().toggleHighlight({color: '#ef9a9a'}).run()}
-                className={`p-1 rounded ${editor.isActive('highligh', {color: '#ef9a9a'}) ? 'bg-gray-200': ''}`}
+                onClick={() => editor.chain().focus().toggleHighlight({ color: '#ef9a9a' }).run()}
+                className={`p-1 rounded ${editor.isActive('highligh', { color: '#ef9a9a' }) ? 'bg-gray-200' : ''}`}
                 title="Red highlight"
               >
-                <span className="inline-block w-4 h-1 bg-red-300"/>
+                <span className="inline-block w-4 h-1 bg-red-300" />
               </button>
               {/* 移除highligh */}
               <button
@@ -304,31 +321,32 @@ export default function NoteDetailEditor({
                 className="p-1 rounded hover:bg-gray-200"
                 title="Remove highlight"
               >
-                <Eraser className="w-5 h-5 text-gray-500"/>
+                <Eraser className="w-5 h-5 text-gray-500" />
               </button>
-            
+
               {/*字体大小*/}
-              <select
-                value={currentFontSize}
-                onChange={(e) => {
-                  const size = e.target.value
-                  editor?.chain().focus().setFontSize(size).run()
-                }}
-                className="border rounded px-2 py-1"
+
+              <div className="flex items-center space-x-1 border border-gray-300 rounded px-2 py-1 hover:border-indigo-400 cursor-pointer">
+                <Type className="w-4 h-4 text-gray-600" />
+                <select
+                  value={currentFontSize}
+                  onChange={(e) => editor?.chain().focus().setFontSize(e.target.value).run()}
+                  className="bg-transparent border-none outline-none text-sm cursor-pointer"
+                >
+                  <option value="">Size</option>
+                  {fontSizes.map((size) => (
+                    <option key={size} value={size.toString()} style={{ fontSize: `${size}px` }}>
+                      {size}px
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                className={editor.isActive('bulletList') ? 'is-active' : ''}
               >
-                <option value="">Defalt Size</option>
-                {fontSizes.map((size) =>(
-                  <option key={size} value={size.toString()}>
-                    {size}px
-                  </option>
-                ))}
-              </select>
-                      <button
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={editor.isActive('bulletList') ? 'is-active' : ''}
-          >
-            <List className="w-5 h-5"/>
-          </button>
+                <List className="w-5 h-5" />
+              </button>
 
 
             </div>
@@ -337,10 +355,10 @@ export default function NoteDetailEditor({
 
           {/* 编辑区 */}
           <div className="pt-4 prose prose-lg min-h-[60vh] focus-within:outline-none">
-            <EditorContent 
+            <EditorContent
               editor={editor}
               onKeyDown={(e) => {
-                if(e.key === "Tab" && editor){
+                if (e.key === "Tab" && editor) {
                   e.preventDefault()
                   editor.chain().focus().insertContent("    ").run()
                 }
