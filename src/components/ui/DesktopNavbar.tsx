@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from "react"
-import { Plus, Menu, Search, Trash2 } from "lucide-react"
+import { Plus, Menu, Search, Trash2, FolderPlus, CirclePlus } from "lucide-react"
 
 interface Folder {
   id: string
@@ -82,7 +82,7 @@ export default function DesktopNavbar({
         aria-label="Toggle folders"
         className="p-2 rounded hover:bg-gray-100 relative"
       >
-        <Menu className="w-6 h-6 text-gray-700" />
+        <FolderPlus className="w-6 h-6 text-gray-700" />
       </button>
 
       {folderMenuOpen && (
@@ -127,7 +127,6 @@ export default function DesktopNavbar({
                   New Folder
                 </button>
               )}
-
             </div>
           </div>
           {/* 新建文件夹输入框（独立显示） */}
@@ -175,28 +174,31 @@ export default function DesktopNavbar({
       {/* 标题 */}
       <h1 className="ml-4 text-xl font-semibold truncate max-w-xs">{title || 'My Notes'}</h1>
 
-      {/* 新建笔记 */}
-      <button
-        onClick={onCreateNote}
-        aria-label="Create new note"
-        className="ml-4 p-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center"
-      >
-        <Plus className="w-5 h-5" />
-      </button>
+      {/* 右侧操作组 */}
+      <div className="ml-auto flex items-center space-x-2 min-w-[280px]">
+        {/* 新建笔记按钮 */}
+        <button
+          onClick={onCreateNote}
+          aria-label="Create new note"
+          className="flex items-center justify-center w-8 h-8 rounded-md border border-blue-600 text-blue-600 hover:bg-blue-100 transition"
+        >
+          <CirclePlus className="w-5 h-5" />
+        </button>
 
-      {/* 搜索框 */}
-      <div className="ml-auto relative max-w-xs w-full">
-        <input
-          type="text"
-          placeholder="Search notes..."
-          value={searchValue}
-          onChange={e => {
-            setSearchValue(e.target.value)
-            onSearch(e.target.value)
-          }}
-          className="w-full pl-9 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
-        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        {/* 搜索框容器 */}
+        <div className="relative flex-grow">
+          <input
+            type="text"
+            placeholder="Search notes..."
+            value={searchValue}
+            onChange={e => {
+              setSearchValue(e.target.value)
+              onSearch(e.target.value)
+            }}
+            className="w-full pl-9 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        </div>
       </div>
     </nav>
   )
