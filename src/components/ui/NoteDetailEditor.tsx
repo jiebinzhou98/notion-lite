@@ -57,22 +57,22 @@ export default function NoteDetailEditor({
   const fontSizes = [12, 14, 16, 18, 20, 22, 24]
   const lineHeights = ['1', '1.5', '2']
   const highlightColors = [
-    {color: '#fff59d', label: 'Yellow'},
-    {color: '#ef9a9a', label: 'Red'},
-    {color: '#a5d6a7', label: 'Green'},
+    { color: '#fff59d', label: 'Yellow' },
+    { color: '#ef9a9a', label: 'Red' },
+    { color: '#a5d6a7', label: 'Green' },
   ]
 
   const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    function handleClickOutSide(event: MouseEvent){
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)){
+    function handleClickOutSide(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setHighlightDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutSide);
-    return() => {
+    return () => {
       document.removeEventListener("mousedown", handleClickOutSide)
     }
   }, [])
@@ -289,12 +289,6 @@ export default function NoteDetailEditor({
               >
                 <Download className="w-5 h-5" />
               </button>
-              <button
-                onClick={() => editor.chain().focus().insertContent("    ").run()}
-                className="p-1 rounded hover:bg-gray-200"
-              >
-                Tab
-              </button>
 
               <div className="flex items-center space-x-1 border border-gray-300 rounded px-2 py-1 hover:border-indigo-400 cursor-pointer">
                 <AlignJustify className="w-4 h-4 text-gray-600" />
@@ -311,60 +305,59 @@ export default function NoteDetailEditor({
                   ))}
                 </select>
               </div>
-{/* 高亮颜色 Dropdown */}
-<div ref={dropdownRef} className="relative inline-block text-left">
-  <button
-    onClick={() => setHighlightDropdownOpen(!highlightDropdownOpen)}
-    className={`inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 hover:border-indigo-400 ${
-      currentHighlightColor ? "bg-gray-200" : "bg-white"
-    }`}
-    title={currentHighlightColor ? `Highlight color: ${currentHighlightColor}` : "Highlight"}
-  >
-    <Highlighter className="w-5 h-5" style={{ color: currentHighlightColor || "black" }} />
-    <ChevronDown className="w-4 h-4" />
-  </button>
+              {/* 高亮颜色 Dropdown */}
+              <div ref={dropdownRef} className="relative inline-block text-left">
+                <button
+                  onClick={() => setHighlightDropdownOpen(!highlightDropdownOpen)}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 hover:border-indigo-400 ${currentHighlightColor ? "bg-gray-200" : "bg-white"
+                    }`}
+                  title={currentHighlightColor ? `Highlight color: ${currentHighlightColor}` : "Highlight"}
+                >
+                  <Highlighter className="w-5 h-5" style={{ color: currentHighlightColor || "black" }} />
+                  <ChevronDown className="w-4 h-4" />
+                </button>
 
-  {highlightDropdownOpen && (
-    <div className="absolute mt-1 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-      <div className="py-1">
-        {highlightColors.map(({ color, label }) => (
-          <button
-            key={color}
-            onClick={() => {
-              editor.chain().focus().toggleHighlight({ color }).run()
-              setHighlightDropdownOpen(false)
-            }}
-            className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100"
-          >
-            <Highlighter className="w-5 h-5" style={{ color }} />
-            <span>{label}</span>
-          </button>
-        ))}
+                {highlightDropdownOpen && (
+                  <div className="absolute mt-1 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1">
+                      {highlightColors.map(({ color, label }) => (
+                        <button
+                          key={color}
+                          onClick={() => {
+                            editor.chain().focus().toggleHighlight({ color }).run()
+                            setHighlightDropdownOpen(false)
+                          }}
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100"
+                        >
+                          <Highlighter className="w-5 h-5" style={{ color }} />
+                          <span>{label}</span>
+                        </button>
+                      ))}
 
-        <button
-          onClick={() => {
-            editor.chain().focus().unsetHighlight().run()
-            setHighlightDropdownOpen(false)
-          }}
-          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-        >
-          <Highlighter className="w-5 h-5 text-red-600" />
-          <span>Remove Highlight</span>
-        </button>
-      </div>
-    </div>
-  )}
-</div>
+                      <button
+                        onClick={() => {
+                          editor.chain().focus().unsetHighlight().run()
+                          setHighlightDropdownOpen(false)
+                        }}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                      >
+                        <Highlighter className="w-5 h-5 text-red-600" />
+                        <span>Remove Highlight</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
 
-      {/* 橡皮擦按钮，清除高亮 */}
-    <button
-      onClick={() => editor.chain().focus().unsetHighlight().run()}
-      title="Remove highlight"
-      className="p-1 rounded hover:bg-gray-200"
-    >
-      <Eraser className="w-5 h-5 text-gray-500" />
-    </button>
+              {/* 橡皮擦按钮，清除高亮 */}
+              <button
+                onClick={() => editor.chain().focus().unsetHighlight().run()}
+                title="Remove highlight"
+                className="p-1 rounded hover:bg-gray-200"
+              >
+                <Eraser className="w-5 h-5 text-gray-500" />
+              </button>
 
               {/*字体大小*/}
 
