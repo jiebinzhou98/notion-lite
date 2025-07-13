@@ -8,6 +8,7 @@ import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
+import OrderedList from '@tiptap/extension-ordered-list';
 import Highlight from '@tiptap/extension-highlight'
 import { Eraser, List, Type, AlignJustify, Highlighter, ChevronDown } from "lucide-react"
 import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
@@ -87,7 +88,13 @@ export default function NoteDetailEditor({
               class: 'list-disc pl-4'
             }
           },
+          orderedList: {
+            HTMLAttributes: {
+              class: 'list-decimal ml-4'
+            }
+          }
         }),
+
         LineHeight,
         Highlight.configure({
           multicolor: true,
@@ -243,31 +250,31 @@ export default function NoteDetailEditor({
             {/* Folder 下拉 */}
             <div className="flex items-center space-x-2 mr-4">
               <div className="flex items-center space-x-1 bg-gray-50 rounded px-3 py-1 border border-gray-200">
-              <label className="text-xs font-medium text-gray-500 whitespace-nowrap">
-                Folder:
-              </label>
-              <select
-                value={selectedFolder ?? ""}
-                onChange={handleFolderChange}
-                className="border-none bg-transparent text-sm focus:ring-1 focus:ring-indigo-400 outline-none cursor-pointer"
-              >
-                <option value="">All</option>
-                {folders.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <label className="text-xs font-medium text-gray-500 whitespace-nowrap">
+                  Folder:
+                </label>
+                <select
+                  value={selectedFolder ?? ""}
+                  onChange={handleFolderChange}
+                  className="border-none bg-transparent text-sm focus:ring-1 focus:ring-indigo-400 outline-none cursor-pointer"
+                >
+                  <option value="">All</option>
+                  {folders.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            {/* Delete */}
-            <button
-              onClick={() => onDelete?.(id)}
-              className="p-1 text-red-500 hover:bg-red-50 rounded transition ml-2"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-          </div>
+              {/* Delete */}
+              <button
+                onClick={() => onDelete?.(id)}
+                className="p-1 text-red-500 hover:bg-red-50 rounded transition ml-2"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* 工具栏 + 保存状态 */}
@@ -383,6 +390,13 @@ export default function NoteDetailEditor({
                 className={editor.isActive('bulletList') ? 'is-active' : ''}
               >
                 <List className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                className={editor.isActive('orderedList') ? 'is-active' : ''}
+                title="Toggle Ordered List"
+              >
+                1.
               </button>
 
 
