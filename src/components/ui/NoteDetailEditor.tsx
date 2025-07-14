@@ -8,9 +8,8 @@ import StarterKit from "@tiptap/starter-kit"
 import { useDebounce } from "@/lib/useDebounce"
 import { Trash2, Bold, Italic, Download } from "lucide-react"
 import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
-import OrderedList from '@tiptap/extension-ordered-list';
 import Highlight from '@tiptap/extension-highlight'
-import { Eraser, List, Type, AlignJustify, Highlighter, ChevronDown } from "lucide-react"
+import { Eraser, List, Type, AlignJustify, Highlighter, ChevronDown, ListOrdered } from "lucide-react"
 import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
 // 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
@@ -396,7 +395,7 @@ export default function NoteDetailEditor({
                 className={editor.isActive('orderedList') ? 'is-active' : ''}
                 title="Toggle Ordered List"
               >
-                1.
+                <ListOrdered className="h-5 w-5"/>
               </button>
 
 
