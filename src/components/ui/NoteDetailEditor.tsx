@@ -229,7 +229,7 @@ export default function NoteDetailEditor({
   }, [id])
 
   return (
-    <main className="flex-1 overflow-y-auto p-6 bg-white/90 backdrop-blur-sm space-y-4 rounded-2xl">
+    <main className="flex flex-col h-full p-6 bg-white/90 backdrop-blur-sm rounded-2xl">
       {!editor ? (
         <p className="text-gray-400">Loading editor...</p>
       ) : (
@@ -277,7 +277,7 @@ export default function NoteDetailEditor({
           </div>
 
           {/* 工具栏 + 保存状态 */}
-          <div className="flex items-center justify-between gap-3 border-b pb-2">
+          <div className="sticky top-0 z-10 bg-white border-b pb-2 flex items-center justify-between gap-3">
             <div className="flex gap-3">
               <button
                 onClick={() => editor.chain().focus().toggleBold().run()}
@@ -404,7 +404,7 @@ export default function NoteDetailEditor({
           </div>
 
           {/* 编辑区 */}
-          <div className="pt-4 prose prose-lg min-h-[60vh] focus-within:outline-none">
+          <div className="flex-1 overflow-y-auto pt-4 prose prose-lg min-h-[60vh] focus-within:outline-none">
             <EditorContent
               editor={editor}
               onKeyDown={(e) => {
