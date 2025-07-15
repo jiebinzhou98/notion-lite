@@ -277,7 +277,7 @@ export default function NoteDetailEditor({
           </div>
 
           {/* 工具栏 + 保存状态 */}
-          <div className="sticky top-0 z-10 bg-white border-b pb-2 flex items-center justify-between gap-3">
+          <div className="sticky top-0 z-10 bg-white border-b pb-2 flex items-center justify-between gap-3 h-12 px-3">
             <div className="flex gap-3">
               <button
                 onClick={() => editor.chain().focus().toggleBold().run()}

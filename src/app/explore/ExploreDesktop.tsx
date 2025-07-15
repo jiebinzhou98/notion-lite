@@ -236,7 +236,7 @@ export default function ExploreDesktop() {
 
 
                 {/* 笔记列表，移除了搜索框和创建新笔记按钮 */}
-                <aside className="flex-shrink-0 w-full md:w-80 p-4 bg-white/80 overflow-y-auto" style={{ height: "calc(100vh - 56px)" }}>
+                <aside className="flex-shrink-0 w-64 p-4 bg-white overflow-y-auto border-r border-gray-200" style={{ height: "calc(100vh - 56px)" }}>
                     {filteredNotes.length === 0 ? (
                         <p className="text-sm text-gray-500">No matching notes</p>
                     ) : (
@@ -269,7 +269,7 @@ export default function ExploreDesktop() {
                 </aside>
 
                 {/* 编辑器区域保持不变 */}
-                <main className="flex-1 p-6 bg-white/40 overflow-auto" style={{ height: "calc(100vh - 56px)" }}>
+                <main className="flex-1 bg-white overflow-auto" style={{ height: "calc(100vh - 56px)" }}>
                     {selectedNoteId ? (
                         <NoteDetailEditor
                             id={selectedNoteId}
