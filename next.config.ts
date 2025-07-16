@@ -52,7 +52,7 @@ module.exports = withPWA(
     dest: "public",
     register: true,
     skipWaiting: true,
-    disable: false,
+    disable: process.env.NODE_ENV === "development",
     // only needed if you see build-manifest precache errors:
     buildExcludes: [/app-build-manifest\.json$/],
     // runtime caching rules:
