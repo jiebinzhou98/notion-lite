@@ -262,26 +262,6 @@ export default function NoteDetailEditor({
               }`}
             />
 
-            {/* Folder 下拉 */}
-            <div className="flex items-center space-x-2 mr-4 flex-shrink-0">
-              <div className="flex items-center space-x-1 bg-gray-50 rounded px-3 py-1 border border-gray-200 min-w-[110px]">
-                <label className="text-xs font-medium text-gray-500 whitespace-nowrap">
-                  Folder:
-                </label>
-                <select
-                  value={selectedFolder ?? ""}
-                  onChange={handleFolderChange}
-                  className="border-none bg-transparent text-sm focus:ring-1 focus:ring-indigo-400 outline-none cursor-pointer"
-                >
-                  <option value="">All</option>
-                  {folders.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               {/* Delete */}
               <button
                 onClick={() => onDelete?.(id)}
@@ -290,7 +270,6 @@ export default function NoteDetailEditor({
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
-          </div>
 
           {/* 仅桌面端显示工具栏 */}
           {!isMobile && (

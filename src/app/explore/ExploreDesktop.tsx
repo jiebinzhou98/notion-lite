@@ -12,12 +12,10 @@ export default function ExploreDesktop() {
     const pathname = usePathname()
     const selectedFromUrl = searchParams.get("selected")
 
-    // Extend NoteSummary to include folder_id
     interface NoteSummaryWithFolder extends NoteSummary {
         folder_id: string | null
     }
 
-    // STATE ------------------------------------------------------
     const [notes, setNotes] = useState<NoteSummaryWithFolder[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState("")
@@ -26,21 +24,23 @@ export default function ExploreDesktop() {
     const [folders, setFolders] = useState<{ id: string; name: string }[]>([])
     const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
 
-    // Drawer & new‐folder UI
+    // Drawer & new-folder UI
     const [drawerOpen, setDrawerOpen] = useState(false)
     const [creatingFolder, setCreatingFolder] = useState(false)
     const [newFolderName, setNewFolderName] = useState("")
     const folderInputRef = useRef<HTMLInputElement>(null)
 
-    // LIFECYCLE --------------------------------------------------
-    // pick up URL‐selected note
+    // 右键菜单相关状态
+    const [contextMenuVisible, setContextMenuVisible] = useState(false)
+    const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
+    const [contextNoteId, setContextNoteId] = useState<string | null>(null)
+
     useEffect(() => {
         if (selectedFromUrl) {
             setSelectedNoteId(selectedFromUrl)
         }
     }, [selectedFromUrl])
 
-    // redirect to single‐note view on mobile
     useEffect(() => {
         function onResize() {
             if (
@@ -56,7 +56,6 @@ export default function ExploreDesktop() {
         return () => window.removeEventListener("resize", onResize)
     }, [selectedNoteId, router, searchParams])
 
-    // fetch folders
     useEffect(() => {
         supabase
             .from("folders")
@@ -73,7 +72,6 @@ export default function ExploreDesktop() {
             })
     }, [])
 
-    // fetch notes
     useEffect(() => {
         supabase
             .from("notes")
@@ -109,8 +107,6 @@ export default function ExploreDesktop() {
             })
     }, [])
 
-    // HELPERS ----------------------------------------------------
-    // filter by selectedFolder + search term
     const filteredNotes = notes
         .filter((n) => selectedFolder === null || n.folder_id === selectedFolder)
         .filter((note) => {
@@ -121,7 +117,6 @@ export default function ExploreDesktop() {
             )
         })
 
-    // create a new note in the current folder
     const handleCreateNote = async () => {
         const { data, error } = await supabase
             .from("notes")
@@ -150,7 +145,6 @@ export default function ExploreDesktop() {
         router.replace(`/explore?selected=${data.id}`)
     }
 
-    // delete a note
     const handleDelete = async (noteId: string) => {
         if (!confirm("Delete this note?")) return
         const { error } = await supabase.from("notes").delete().eq("id", noteId)
@@ -165,7 +159,6 @@ export default function ExploreDesktop() {
         }
     }
 
-    // confirm creation of a new folder
     async function confirmCreateFolder(name: string) {
         const trimmedName = name.trim()
         if (!trimmedName) {
@@ -187,15 +180,12 @@ export default function ExploreDesktop() {
         setCreatingFolder(false)
     }
 
-    //删除folder
     const handleDeleteFolder = async (folderId: string) => {
         if (!confirm("Delete this folder and all its notes?")) return
-        //先把folder 里的notes 归位到null（全部）
         await supabase
             .from("notes")
             .update({ folder_id: null })
             .eq("folder_id", folderId)
-        //再去删除
         const { error } = await supabase.from("folders").delete().eq("id", folderId)
         if (error) {
             console.error(error)
@@ -207,7 +197,52 @@ export default function ExploreDesktop() {
         }
     }
 
-    // RENDER -----------------------------------------------------
+    // 右键点击笔记
+    const handleNoteContextMenu = (e: React.MouseEvent, noteId: string) => {
+        e.preventDefault()
+        setContextNoteId(noteId)
+        setContextMenuPosition({ x: e.clientX, y: e.clientY })
+        setContextMenuVisible(true)
+    }
+
+    // 移动笔记到指定文件夹
+    const moveNoteToFolder = async (folderId: string | null) => {
+        if (!contextNoteId) return
+        const { error } = await supabase
+            .from('notes')
+            .update({ folder_id: folderId })
+            .eq('id', contextNoteId)
+        if (error) {
+            console.error('Failed to move note', error)
+            alert('Failed to move note')
+        } else {
+            // 更新本地状态
+            setNotes((ns) =>
+                ns.map((n) =>
+                    n.id === contextNoteId ? { ...n, folder_id: folderId } : n
+                )
+            )
+            // 如果移动的笔记是当前选中，更新 selectedFolder 以同步过滤
+            if (contextNoteId === selectedNoteId) {
+                setSelectedFolder(folderId)
+            }
+        }
+        setContextMenuVisible(false)
+    }
+
+    // 关闭菜单，监听点击页面空白处
+    useEffect(() => {
+        const handleClickOutside = () => {
+            if (contextMenuVisible) setContextMenuVisible(false)
+        }
+        window.addEventListener('click', handleClickOutside)
+        window.addEventListener('scroll', handleClickOutside)
+        return () => {
+            window.removeEventListener('click', handleClickOutside)
+            window.removeEventListener('scroll', handleClickOutside)
+        }
+    }, [contextMenuVisible])
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-screen">
@@ -216,7 +251,6 @@ export default function ExploreDesktop() {
         )
     }
 
-
     return (
         <div className="flex flex-col h-screen">
             <DesktopNavbar
@@ -224,7 +258,7 @@ export default function ExploreDesktop() {
                 selectedFolder={selectedFolder}
                 onSelectFolder={setSelectedFolder}
                 onDeleteFolder={handleDeleteFolder}
-                onCreateFolder= {confirmCreateFolder}
+                onCreateFolder={confirmCreateFolder}
                 onCreateNote={handleCreateNote}
                 onSearch={(query) => setSearchTerm(query)}
                 searchValue={searchTerm}
@@ -234,14 +268,19 @@ export default function ExploreDesktop() {
 
             <div className="flex flex-1 mt-14">
 
-
-                {/* 笔记列表，移除了搜索框和创建新笔记按钮 */}
-                <aside className="flex-shrink-0 w-64 p-4 bg-white overflow-y-auto border-r border-gray-200" style={{ height: "calc(100vh - 56px)" }}>
+                <aside
+                    className="flex-shrink-0 w-64 p-4 bg-white overflow-y-auto border-r border-gray-200"
+                    style={{ height: "calc(100vh - 56px)" }}
+                >
                     {filteredNotes.length === 0 ? (
                         <p className="text-sm text-gray-500">No matching notes</p>
                     ) : (
                         filteredNotes.map((note) => (
-                            <div key={note.id} className="mb-3">
+                            <div
+                                key={note.id}
+                                className="mb-3"
+                                onContextMenu={(e) => handleNoteContextMenu(e, note.id)}
+                            >
                                 <NoteCard
                                     note={note}
                                     isActive={note.id === selectedNoteId}
@@ -268,8 +307,10 @@ export default function ExploreDesktop() {
                     )}
                 </aside>
 
-                {/* 编辑器区域保持不变 */}
-                <main className="flex-1 bg-white overflow-auto" style={{ height: "calc(100vh - 56px)" }}>
+                <main
+                    className="flex-1 bg-white overflow-auto"
+                    style={{ height: "calc(100vh - 56px)" }}
+                >
                     {selectedNoteId ? (
                         <NoteDetailEditor
                             id={selectedNoteId}
@@ -298,7 +339,31 @@ export default function ExploreDesktop() {
                     )}
                 </main>
             </div>
+
+            {/* 右键菜单 */}
+            {contextMenuVisible && (
+                <ul
+                    className="absolute bg-white shadow-md rounded border border-gray-300"
+                    style={{ top: contextMenuPosition.y, left: contextMenuPosition.x, zIndex: 10000, width: 200 }}
+                    onContextMenu={(e) => e.preventDefault()}
+                >
+                    <li
+                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => moveNoteToFolder(null)}
+                    >
+                        No Folder
+                    </li>
+                    {folders.map((folder) => (
+                        <li
+                            key={folder.id}
+                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                            onClick={() => moveNoteToFolder(folder.id)}
+                        >
+                            {folder.name}
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     )
-
 }
