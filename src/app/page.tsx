@@ -20,6 +20,7 @@ export default function HomePage() {
         console.error('Failed to load recent notes', error)
       } else if (data) {
         // 从 content 里提取一段摘录
+        
         const list = data.map(item => {
           let excerpt = ''
           try {
