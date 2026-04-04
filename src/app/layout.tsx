@@ -42,5 +42,5 @@ export default function RootLayout({
         <BottomNav />
       </body>
     </html>
-  );
+  ); 
 }
