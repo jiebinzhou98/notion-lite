@@ -122,7 +122,7 @@ export default function ExploreDesktop() {
             .from("notes")
             .insert({
                 title: "",
-                content: { type: "doc", content: [] },
+                content: { type: "doc", content: [{ type: "paragraph" }] },
                 is_pinned: false,
                 folder_id: selectedFolder,
             })
@@ -167,7 +167,7 @@ export default function ExploreDesktop() {
         }
         const { data, error } = await supabase
             .from("folders")
-            .insert({ name: trimmedName})
+            .insert({ name: trimmedName })
             .select()
             .single()
         if (error || !data) {
@@ -313,6 +313,7 @@ export default function ExploreDesktop() {
                 >
                     {selectedNoteId ? (
                         <NoteDetailEditor
+                            // key={selectedNoteId}
                             id={selectedNoteId}
                             folders={folders}
                             selectedFolder={selectedFolder}

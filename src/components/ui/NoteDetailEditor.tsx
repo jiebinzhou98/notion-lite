@@ -10,6 +10,7 @@ import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
 import Highlight from '@tiptap/extension-highlight'
 import { Eraser, List, Type, AlignJustify, Highlighter, ChevronDown, ListOrdered } from "lucide-react"
 import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
+import Placeholder from "@tiptap/extension-placeholder"
 
 // 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
@@ -63,7 +64,7 @@ export default function NoteDetailEditor({
 
   const fallbackDoc: JSONContent = {
     type: "doc",
-    content: [{ type: "paragraph", content: [{ type: "text", text: "" }] }],
+    content: [{ type: "paragraph" }],
   }
 
   const fontSizes = [12, 14, 16, 18, 20, 22, 24]
@@ -89,7 +90,9 @@ export default function NoteDetailEditor({
     }
   }, [])
 
-  const isValidDoc = initialContent?.type === "doc"
+  const isValidDoc = initialContent?.type === "doc" &&
+    Array.isArray(initialContent.content) &&
+    initialContent.content.length > 0
   const editor = useEditor(
     {
       extensions: [
@@ -110,9 +113,14 @@ export default function NoteDetailEditor({
           multicolor: true,
         }),
         TextStyleExtended,
+        Placeholder.configure({
+          placeholder: "Start writing...",
+          emptyEditorClass: "is-editor-empty",
+        }),
       ],
       content: isValidDoc ? initialContent : fallbackDoc,
       editable: true,
+      autofocus: false,
       onUpdate({ editor }) {
         const json = editor.getJSON()
         setLatestContent(json)
@@ -183,11 +191,11 @@ export default function NoteDetailEditor({
       if (!latestContent) return
 
       // 跳过完全空文档
-      const paras = latestContent.content?.[0]?.content
-      if (!paras || paras.length === 0) {
-        console.warn("Skip saving empty document")
-        return
-      }
+      // const paras = latestContent.content?.[0]?.content
+      // if (!paras || paras.length === 0) {
+      //   console.warn("Skip saving empty document")
+      //   return
+      // }
 
       ; (async () => {
         console.log("Saving content to Supabase:", latestContent)
@@ -204,7 +212,7 @@ export default function NoteDetailEditor({
       })()
     },
     1500,
-    [latestContent]
+    [latestContent, id]
   )
 
   // 通知父组件更新 title/excerpt
@@ -219,21 +227,39 @@ export default function NoteDetailEditor({
   )
 
   // 初始载入
-  useEffect(() => {
-    supabase
+useEffect(() => {
+  if (!id) return
+
+  let isCancelled = false
+
+  async function fetchNote() {
+    const { data, error } = await supabase
       .from("notes")
       .select("title, content")
       .eq("id", id)
-      .single()
-      .then(({ data, error }) => {
-        if (data) {
-          setTitle(data.title)
-          setInitialContent(data.content)
-        } else {
-          console.error("Failed fetching note:", error)
-        }
-      })
-  }, [id])
+      .maybeSingle()
+
+    if (isCancelled) return
+
+    if (error) {
+      console.error("Failed fetching note:", error)
+      return
+    }
+
+    if (!data) {
+      return
+    }
+
+    setTitle(data.title ?? "")
+    setInitialContent(data.content ?? null)
+  }
+
+  fetchNote()
+
+  return () => {
+    isCancelled = true
+  }
+}, [id])
 
   // 判断是否手机端
   const isMobile = useIsMobile()
@@ -246,9 +272,8 @@ export default function NoteDetailEditor({
         <>
           {/* 标题 + 下拉 + 删除 */}
           <div
-            className={`flex items-center justify-between border-b pb-2 ${
-              isMobile ? "flex-wrap gap-2" : ""
-            }`}
+            className={`flex items-center justify-between border-b pb-2 ${isMobile ? "flex-wrap gap-2" : ""
+              }`}
           >
             <input
               value={title}
@@ -257,19 +282,18 @@ export default function NoteDetailEditor({
                 setSavingStatus("Saving...")
               }}
               placeholder="Untitled"
-              className={`flex-1 text-4xl font-semibold outline-none bg-transparent ${
-                isMobile ? "max-w-[60%]" : ""
-              }`}
+              className={`flex-1 text-4xl font-semibold outline-none bg-transparent ${isMobile ? "max-w-[60%]" : ""
+                }`}
             />
 
-              {/* Delete */}
-              <button
-                onClick={() => onDelete?.(id)}
-                className="p-1 text-red-500 hover:bg-red-50 rounded transition ml-2"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Delete */}
+            <button
+              onClick={() => onDelete?.(id)}
+              className="p-1 text-red-500 hover:bg-red-50 rounded transition ml-2"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* 仅桌面端显示工具栏 */}
           {!isMobile && (
@@ -277,17 +301,15 @@ export default function NoteDetailEditor({
               <div className="flex gap-3">
                 <button
                   onClick={() => editor.chain().focus().toggleBold().run()}
-                  className={`p-1 rounded ${
-                    editor.isActive("bold") ? "bg-gray-200" : ""
-                  }`}
+                  className={`p-1 rounded ${editor.isActive("bold") ? "bg-gray-200" : ""
+                    }`}
                 >
                   <Bold className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => editor.chain().focus().toggleItalic().run()}
-                  className={`p-1 rounded ${
-                    editor.isActive("italic") ? "bg-gray-200" : ""
-                  }`}
+                  className={`p-1 rounded ${editor.isActive("italic") ? "bg-gray-200" : ""
+                    }`}
                 >
                   <Italic className="w-5 h-5" />
                 </button>
@@ -321,9 +343,8 @@ export default function NoteDetailEditor({
                     onClick={() =>
                       setHighlightDropdownOpen(!highlightDropdownOpen)
                     }
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 hover:border-indigo-400 ${
-                      currentHighlightColor ? "bg-gray-200" : "bg-white"
-                    }`}
+                    className={`inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 hover:border-indigo-400 ${currentHighlightColor ? "bg-gray-200" : "bg-white"
+                      }`}
                     title={
                       currentHighlightColor
                         ? `Highlight color: ${currentHighlightColor}`
