@@ -56,7 +56,7 @@ export default function MobileList() {
               let excerpt = ''
               try {
                 excerpt = item.content.content?.[0]?.content?.[0]?.text || ''
-              } catch {}
+              } catch { }
               return {
                 id: item.id,
                 title: item.title,
@@ -98,13 +98,22 @@ export default function MobileList() {
     setShowFolderMenu(false)
   }
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        Loading…
-      </div>
-    )
-  }
+if (loading) {
+  return (
+    <div className="h-screen bg-gray-50 p-4 space-y-3">
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="animate-pulse bg-white rounded-xl p-4 shadow-sm border"
+        >
+          <div className="h-5 w-1/2 bg-gray-200 rounded mb-2" />
+          <div className="h-4 w-3/4 bg-gray-200 rounded mb-2" />
+          <div className="h-3 w-1/3 bg-gray-200 rounded" />
+        </div>
+      ))}
+    </div>
+  )
+}
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
@@ -158,31 +167,31 @@ export default function MobileList() {
                   </li>
                 ))}
                 <li className='px-3 py-2'>
-                    <button
-                        onClick={async () => {
-                            const name = window.prompt("Enter new folder name:")
-                            if(name && name.trim()){
-                                try {
-                                    const {data, error} = await supabase
-                                        .from('folders')
-                                        .insert({name: name.trim()})
-                                        .select()
-                                        .single()
-                                    if(error) throw error
-                                    setFolders((f) => [...f, data!])
-                                    setSelectedFolder(data!.id)
-                                    setShowFolderMenu(false)
-                                }catch (err){
-                                    console.error("Error creating folder:", err)
-                                    alert("Failed to create folder. Please try again.")
-                                }
-                            }
-                        }}
-                        className='flex item-center space-x-1 text-indigo-600 hover:bg-gray-100 px-2 py-1 rounded'
-                    >
-                        <Plus className='w-4 h-4'/>
-                        <span>New Folder</span>
-                    </button>
+                  <button
+                    onClick={async () => {
+                      const name = window.prompt("Enter new folder name:")
+                      if (name && name.trim()) {
+                        try {
+                          const { data, error } = await supabase
+                            .from('folders')
+                            .insert({ name: name.trim() })
+                            .select()
+                            .single()
+                          if (error) throw error
+                          setFolders((f) => [...f, data!])
+                          setSelectedFolder(data!.id)
+                          setShowFolderMenu(false)
+                        } catch (err) {
+                          console.error("Error creating folder:", err)
+                          alert("Failed to create folder. Please try again.")
+                        }
+                      }
+                    }}
+                    className='flex item-center space-x-1 text-indigo-600 hover:bg-gray-100 px-2 py-1 rounded'
+                  >
+                    <Plus className='w-4 h-4' />
+                    <span>New Folder</span>
+                  </button>
                 </li>
               </ul>
             </div>
@@ -200,6 +209,21 @@ export default function MobileList() {
               key={note.id}
               note={note}
               onSelect={(id) => router.push(`/explore/${id}`)}
+              onTogglePin={() => {
+                setNotes((prev) =>
+                  [...prev]
+                    .map((n) =>
+                      n.id === note.id ? { ...n, is_pinned: !n.is_pinned } : n
+                    )
+                    .sort((a, b) =>
+                      a.is_pinned === b.is_pinned
+                        ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                        : b.is_pinned
+                          ? 1
+                          : -1
+                    )
+                )
+              }}
             />
           ))
         )}

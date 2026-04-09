@@ -245,14 +245,23 @@ export default function ExploreDesktop() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <p className="text-gray-500">Loading…</p>
+            <div className="h-screen bg-gray-50 p-4 space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                    <div
+                        key={i}
+                        className="animate-pulse bg-white rounded-xl p-4 shadow-sm border"
+                    >
+                        <div className="h-5 w-1/2 bg-gray-200 rounded mb-2" />
+                        <div className="h-4 w-3/4 bg-gray-200 rounded mb-2" />
+                        <div className="h-3 w-1/3 bg-gray-200 rounded" />
+                    </div>
+                ))}
             </div>
         )
     }
 
     return (
-        <div className="flex flex-col h-screen">
+        <div className="flex h-screen flex-col">
             <DesktopNavbar
                 folders={folders}
                 selectedFolder={selectedFolder}
@@ -266,86 +275,85 @@ export default function ExploreDesktop() {
                 title="Explore Notes"
             />
 
-            <div className="flex flex-1 mt-14">
-
-                <aside
-                    className="flex-shrink-0 w-64 p-4 bg-white overflow-y-auto border-r border-gray-200"
-                    style={{ height: "calc(100vh - 56px)" }}
-                >
-                    {filteredNotes.length === 0 ? (
-                        <p className="text-sm text-gray-500">No matching notes</p>
-                    ) : (
-                        filteredNotes.map((note) => (
-                            <div
-                                key={note.id}
-                                className="mb-3"
-                                onContextMenu={(e) => handleNoteContextMenu(e, note.id)}
-                            >
-                                <NoteCard
-                                    note={note}
-                                    isActive={note.id === selectedNoteId}
-                                    onSelect={setSelectedNoteId}
-                                    onTogglePin={() => {
-                                        setNotes((p) =>
-                                            [...p]
-                                                .map((n) =>
-                                                    n.id === note.id ? { ...n, is_pinned: !n.is_pinned } : n
-                                                )
-                                                .sort((a, b) =>
-                                                    a.is_pinned === b.is_pinned
-                                                        ? new Date(b.created_at).getTime() -
-                                                        new Date(a.created_at).getTime()
-                                                        : b.is_pinned
-                                                            ? 1
-                                                            : -1
-                                                )
-                                        )
-                                    }}
-                                />
-                            </div>
-                        ))
-                    )}
+            <div className="mt-14 flex flex-1 overflow-hidden bg-zinc-50">
+                <aside className="flex-shrink-0 w-[272px] overflow-y-auto overscroll-contain border-r border-gray-200 bg-zinc-50">
+                    <div className="min-h-full px-3 py-4">
+                        {filteredNotes.length === 0 ? (
+                            <p className="text-sm text-gray-500">No matching notes</p>
+                        ) : (
+                            filteredNotes.map((note) => (
+                                <div
+                                    key={note.id}
+                                    className="mb-3"
+                                    onContextMenu={(e) => handleNoteContextMenu(e, note.id)}
+                                >
+                                    <NoteCard
+                                        note={note}
+                                        isActive={note.id === selectedNoteId}
+                                        onSelect={setSelectedNoteId}
+                                        onTogglePin={() => {
+                                            setNotes((p) =>
+                                                [...p]
+                                                    .map((n) =>
+                                                        n.id === note.id ? { ...n, is_pinned: !n.is_pinned } : n
+                                                    )
+                                                    .sort((a, b) =>
+                                                        a.is_pinned === b.is_pinned
+                                                            ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                                                            : b.is_pinned
+                                                                ? 1
+                                                                : -1
+                                                    )
+                                            )
+                                        }}
+                                    />
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </aside>
 
-                <main
-                    className="flex-1 bg-white overflow-auto"
-                    style={{ height: "calc(100vh - 56px)" }}
-                >
-                    {selectedNoteId ? (
-                        <NoteDetailEditor
-                            // key={selectedNoteId}
-                            id={selectedNoteId}
-                            folders={folders}
-                            selectedFolder={selectedFolder}
-                            onMoveFolder={(newId) => {
-                                setNotes((ns) =>
-                                    ns.map((n) =>
-                                        n.id === selectedNoteId ? { ...n, folder_id: newId } : n
+                <main className="flex-1 overflow-y-auto bg-white">
+                    <div className="px-6 py-6">
+                        {selectedNoteId ? (
+                            <NoteDetailEditor
+                                id={selectedNoteId}
+                                folders={folders}
+                                selectedFolder={selectedFolder}
+                                onMoveFolder={(newId) => {
+                                    setNotes((ns) =>
+                                        ns.map((n) =>
+                                            n.id === selectedNoteId ? { ...n, folder_id: newId } : n
+                                        )
                                     )
-                                )
-                                setSelectedFolder(newId)
-                                router.replace(`/explore?selected=${selectedNoteId}`)
-                            }}
-                            onUpdate={({ title, excerpt }) =>
-                                setNotes((ns) =>
-                                    ns.map((n) =>
-                                        n.id === selectedNoteId ? { ...n, title, excerpt } : n
+                                    setSelectedFolder(newId)
+                                    router.replace(`/explore?selected=${selectedNoteId}`)
+                                }}
+                                onUpdate={({ title, excerpt }) =>
+                                    setNotes((ns) =>
+                                        ns.map((n) =>
+                                            n.id === selectedNoteId ? { ...n, title, excerpt } : n
+                                        )
                                     )
-                                )
-                            }
-                            onDelete={handleDelete}
-                        />
-                    ) : (
-                        <p className="text-gray-500">Select or create a note</p>
-                    )}
+                                }
+                                onDelete={handleDelete}
+                            />
+                        ) : (
+                            <p className="text-gray-500">Select or create a note</p>
+                        )}
+                    </div>
                 </main>
             </div>
 
-            {/* 右键菜单 */}
             {contextMenuVisible && (
                 <ul
                     className="absolute bg-white shadow-md rounded border border-gray-300"
-                    style={{ top: contextMenuPosition.y, left: contextMenuPosition.x, zIndex: 10000, width: 200 }}
+                    style={{
+                        top: contextMenuPosition.y,
+                        left: contextMenuPosition.x,
+                        zIndex: 10000,
+                        width: 200,
+                    }}
                     onContextMenu={(e) => e.preventDefault()}
                 >
                     <li
