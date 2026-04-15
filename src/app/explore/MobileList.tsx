@@ -3,7 +3,8 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import NoteCard, { NoteSummary } from '@/components/ui/NoteCard'
+import NoteCard from '@/components/ui/NoteCard'
+import { NoteSummary } from '@/types/note'
 import { supabase } from '@/lib/supabase'
 import { Menu, Plus, Trash2 } from 'lucide-react'
 

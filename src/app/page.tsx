@@ -1,12 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { NoteSummary } from '@/components/ui/NoteCard'
+import { supabase } from '@/lib/supabase'
+import { NoteSummary } from '@/types/note'
+import HomeSidebar from '@/components/home/HomeSidebar'
+import HomeTopBar from '@/components/home/HomeTopBar'
+import HomeHero from '@/components/home/HomeHero'
+import RecentNotesList from '@/components/home/RecentNotesList'
 
 export default function HomePage() {
   const [notes, setNotes] = useState<NoteSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     async function fetchRecent() {
@@ -18,17 +24,23 @@ export default function HomePage() {
 
       if (error) {
         console.error('Failed to load recent notes', error)
-      } else if (data) {
-        // 从 content 里提取一段摘录
-        
-        const list = data.map(item => {
+        setLoading(false)
+        return
+      }
+
+      if (data) {
+        const list: NoteSummary[] = data.map((item) => {
           let excerpt = ''
+
           try {
-            const p = item.content.content.find((b: any) => b.type === 'paragraph')
-            excerpt = p.content[0]?.text || ''
+            const paragraph = item.content?.content?.find(
+              (block: any) => block.type === 'paragraph'
+            )
+            excerpt = paragraph?.content?.[0]?.text || ''
           } catch {
             excerpt = ''
           }
+
           return {
             id: item.id,
             title: item.title,
@@ -37,41 +49,58 @@ export default function HomePage() {
             is_pinned: item.is_pinned,
           }
         })
+
         setNotes(list)
       }
+
+      setLoading(false)
     }
+
     fetchRecent()
   }, [])
 
+  const filteredNotes = notes.filter((note) => {
+    const q = searchTerm.toLowerCase().trim()
+
+    if(!q) return true
+
+    return(
+      note.title.toLowerCase().includes(q) ||
+      note.excerpt?.toLowerCase().includes(q)
+    )
+  })
+
   return (
-    <main className="min-h-screen p-6 bg-gradient-to-br from-amber-100 via-amber-50 to-stone-50">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-800 mb-6">Recent Notes</h1>
-        <div className="space-y-4">
-          {notes.map(note => (
-            <Link
-              key={note.id}
-              href={`/explore?selected=${note.id}`}
-              className="block p-4 bg-white/80 backdrop-blur-sm rounded-lg shadow hover:scale-[1.02] transition"
-            >
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {note.title || 'Untitled'}
-                </h2>
-                <span className="text-sm text-gray-500">
-                  {new Date(note.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              {note.excerpt && (
-                <p className="mt-2 text-gray-700 line-clamp-2">{note.excerpt}</p>
-              )}
-            </Link>
-          ))}
-          {notes.length === 0 && (
-            <p className="text-gray-600">No notes yet—create your first note!</p>
-          )}
+    <main className="flex min-h-screen bg-[#f7f7f5] text-zinc-900">
+      <HomeSidebar />
+
+      <section className="flex min-w-0 flex-1 flex-col">
+        <HomeTopBar
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
+
+        <div className="flex-1 px-6 pb-12 pt-4 md:px-10 md:pb-14">
+          <div className="mx-auto max-w-4xl">
+            <HomeHero />
+
+            <RecentNotesList 
+              notes={filteredNotes} 
+              loading={loading}
+              searchTerm={searchTerm}
+            />
+
+            <div className="mt-20 border-t border-zinc-200 pt-8 text-center">
+              <Link
+                href="/explore"
+                className="text-sm uppercase tracking-[0.22em] text-zinc-400 transition hover:text-zinc-700"
+              >
+                Start a new entry
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </main>
   )
 }

@@ -1,378 +1,386 @@
 'use client'
-import { useEffect, useRef, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import NoteCard, { NoteSummary } from "@/components/ui/NoteCard"
-import NoteDetailEditor from "@/components/ui/NoteDetailEditor"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
-import DesktopNavbar from "@/components/ui/DesktopNavbar"
+
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { NoteSummaryWithFolder } from '@/types/note'
+import { useRouter, useSearchParams } from 'next/navigation'
+import DesktopNavbar from '@/components/ui/DesktopNavbar'
+import ExploreNoteList from './ExploreNoteList'
+import NoteWorkspace from './NoteWorkspace'
+
+type Folder = {
+  id: string
+  name: string
+}
+
+function sortNotesByPinnedAndDate(notes: NoteSummaryWithFolder[]) {
+  return [...notes].sort((a, b) =>
+    a.is_pinned === b.is_pinned
+      ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      : b.is_pinned
+        ? 1
+        : -1
+  )
+}
 
 export default function ExploreDesktop() {
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const pathname = usePathname()
-    const selectedFromUrl = searchParams.get("selected")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const selectedFromUrl = searchParams.get('selected')
 
-    interface NoteSummaryWithFolder extends NoteSummary {
-        folder_id: string | null
+  const [notes, setNotes] = useState<NoteSummaryWithFolder[]>([])
+  const [folders, setFolders] = useState<Folder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+
+  const [contextMenuVisible, setContextMenuVisible] = useState(false)
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 })
+  const [contextNoteId, setContextNoteId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (selectedFromUrl) {
+      setSelectedNoteId(selectedFromUrl)
+    }
+  }, [selectedFromUrl])
+
+  useEffect(() => {
+    function onResize() {
+      if (
+        window.innerWidth < 768 &&
+        selectedNoteId &&
+        searchParams.get('selected')
+      ) {
+        router.replace(`/explore/${selectedNoteId}`)
+      }
     }
 
-    const [notes, setNotes] = useState<NoteSummaryWithFolder[]>([])
-    const [loading, setLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState("")
-    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [selectedNoteId, router, searchParams])
 
-    const [folders, setFolders] = useState<{ id: string; name: string }[]>([])
-    const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
+  useEffect(() => {
+    async function fetchFolders() {
+      const { data, error } = await supabase
+        .from('folders')
+        .select('id, name')
+        .order('created_at', { ascending: true })
 
-    // Drawer & new-folder UI
-    const [drawerOpen, setDrawerOpen] = useState(false)
-    const [creatingFolder, setCreatingFolder] = useState(false)
-    const [newFolderName, setNewFolderName] = useState("")
-    const folderInputRef = useRef<HTMLInputElement>(null)
+      if (error) {
+        console.error(error)
+        return
+      }
 
-    // 右键菜单相关状态
-    const [contextMenuVisible, setContextMenuVisible] = useState(false)
-    const [contextMenuPosition, setContextMenuPosition] = useState<{ x: number, y: number }>({ x: 0, y: 0 })
-    const [contextNoteId, setContextNoteId] = useState<string | null>(null)
+      const folderList = data || []
+      setFolders(folderList)
 
-    useEffect(() => {
-        if (selectedFromUrl) {
-            setSelectedNoteId(selectedFromUrl)
-        }
-    }, [selectedFromUrl])
+      if (folderList.length > 0) {
+        setSelectedFolder((prev) => prev ?? folderList[0].id)
+      }
+    }
 
-    useEffect(() => {
-        function onResize() {
-            if (
-                window.innerWidth < 768 &&
-                selectedNoteId &&
-                searchParams.get("selected")
-            ) {
-                router.replace(`/explore/${selectedNoteId}`)
-            }
-        }
-        onResize()
-        window.addEventListener("resize", onResize)
-        return () => window.removeEventListener("resize", onResize)
-    }, [selectedNoteId, router, searchParams])
+    fetchFolders()
+  }, [])
 
-    useEffect(() => {
-        supabase
-            .from("folders")
-            .select("id, name")
-            .order("created_at", { ascending: true })
-            .then(({ data, error }) => {
-                if (error) console.error(error)
-                else {
-                    setFolders(data || [])
-                    if (!selectedFolder && data?.length) {
-                        setSelectedFolder(data[0].id)
-                    }
-                }
-            })
-    }, [])
+  useEffect(() => {
+    async function fetchNotes() {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('id, title, created_at, content, is_pinned, folder_id')
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false })
 
-    useEffect(() => {
-        supabase
-            .from("notes")
-            .select("id, title, created_at, content, is_pinned, folder_id")
-            .order("is_pinned", { ascending: false })
-            .order("created_at", { ascending: false })
-            .then(({ data, error }) => {
-                if (error) {
-                    console.error(error)
-                } else if (data) {
-                    const list = data.map((item) => {
-                        let excerpt = ""
-                        try {
-                            const para = item.content?.content?.find((b: any) => b.type === "paragraph")
-                            excerpt = para?.content?.[0]?.text || ""
-                        } catch {
-                            excerpt = ""
-                        }
-                        return {
-                            id: item.id,
-                            title: item.title,
-                            created_at: item.created_at,
-                            excerpt,
-                            is_pinned: item.is_pinned,
-                            folder_id: item.folder_id,
-                        }
-                    })
-                    setNotes(list)
-                    if (selectedFromUrl) setSelectedNoteId(selectedFromUrl)
-                    else if (list.length > 0) setSelectedNoteId(list[0].id)
-                }
-                setLoading(false)
-            })
-    }, [])
+      if (error) {
+        console.error(error)
+        setLoading(false)
+        return
+      }
 
-    const filteredNotes = notes
-        .filter((n) => selectedFolder === null || n.folder_id === selectedFolder)
-        .filter((note) => {
-            const q = searchTerm.toLowerCase()
-            return (
-                note.title.toLowerCase().includes(q) ||
-                note.excerpt?.toLowerCase().includes(q)
+      if (data) {
+        const list: NoteSummaryWithFolder[] = data.map((item) => {
+          let excerpt = ''
+
+          try {
+            const para = item.content?.content?.find(
+              (b: any) => b.type === 'paragraph'
             )
+            excerpt = para?.content?.[0]?.text || ''
+          } catch {
+            excerpt = ''
+          }
+
+          return {
+            id: item.id,
+            title: item.title,
+            created_at: item.created_at,
+            excerpt,
+            is_pinned: item.is_pinned,
+            folder_id: item.folder_id,
+          }
         })
 
-    const handleCreateNote = async () => {
-        const { data, error } = await supabase
-            .from("notes")
-            .insert({
-                title: "",
-                content: { type: "doc", content: [{ type: "paragraph" }] },
-                is_pinned: false,
-                folder_id: selectedFolder,
-            })
-            .select()
-            .single()
-        if (error || !data) {
-            console.error(error)
-            return
+        setNotes(list)
+
+        if (selectedFromUrl) {
+          setSelectedNoteId(selectedFromUrl)
+        } else if (list.length > 0) {
+          setSelectedNoteId(list[0].id)
         }
-        const newNote: NoteSummaryWithFolder = {
-            id: data.id,
-            title: data.title,
-            created_at: data.created_at,
-            excerpt: "",
-            is_pinned: data.is_pinned,
-            folder_id: data.folder_id,
-        }
-        setNotes((p) => [newNote, ...p])
-        setSelectedNoteId(data.id)
-        router.replace(`/explore?selected=${data.id}`)
+      }
+
+      setLoading(false)
     }
 
-    const handleDelete = async (noteId: string) => {
-        if (!confirm("Delete this note?")) return
-        const { error } = await supabase.from("notes").delete().eq("id", noteId)
-        if (error) {
-            console.error(error)
-            return
-        }
-        setNotes((p) => p.filter((n) => n.id !== noteId))
-        if (noteId === selectedNoteId) {
-            const next = filteredNotes.find((n) => n.id !== noteId)
-            setSelectedNoteId(next?.id || null)
-        }
+    fetchNotes()
+  }, [selectedFromUrl])
+
+  const filteredNotes = notes
+    .filter((note) => selectedFolder === null || note.folder_id === selectedFolder)
+    .filter((note) => {
+      const q = searchTerm.toLowerCase().trim()
+
+      if (!q) return true
+
+      return (
+        note.title.toLowerCase().includes(q) ||
+        note.excerpt?.toLowerCase().includes(q)
+      )
+    })
+
+  const handleCreateNote = async () => {
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        title: '',
+        content: { type: 'doc', content: [{ type: 'paragraph' }] },
+        is_pinned: false,
+        folder_id: selectedFolder,
+      })
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.error(error)
+      return
     }
 
-    async function confirmCreateFolder(name: string) {
-        const trimmedName = name.trim()
-        if (!trimmedName) {
-            setCreatingFolder(false)
-            return
-        }
-        const { data, error } = await supabase
-            .from("folders")
-            .insert({ name: trimmedName })
-            .select()
-            .single()
-        if (error || !data) {
-            console.error(error)
-        } else {
-            setFolders((p) => [...p, data])
-            setSelectedFolder(data.id)
-        }
-        setNewFolderName("")
-        setCreatingFolder(false)
+    const newNote: NoteSummaryWithFolder = {
+      id: data.id,
+      title: data.title,
+      created_at: data.created_at,
+      excerpt: '',
+      is_pinned: data.is_pinned,
+      folder_id: data.folder_id,
     }
 
-    const handleDeleteFolder = async (folderId: string) => {
-        if (!confirm("Delete this folder and all its notes?")) return
-        await supabase
-            .from("notes")
-            .update({ folder_id: null })
-            .eq("folder_id", folderId)
-        const { error } = await supabase.from("folders").delete().eq("id", folderId)
-        if (error) {
-            console.error(error)
-            return
-        }
-        setFolders(folders.filter(f => f.id !== folderId))
-        if (selectedFolder === folderId) {
-            setSelectedFolder(null)
-        }
+    setNotes((prev) => sortNotesByPinnedAndDate([newNote, ...prev]))
+    setSelectedNoteId(data.id)
+    router.replace(`/explore?selected=${data.id}`)
+  }
+
+  const handleDelete = async (noteId: string) => {
+    if (!confirm('Delete this note?')) return
+
+    const { error } = await supabase.from('notes').delete().eq('id', noteId)
+
+    if (error) {
+      console.error(error)
+      return
     }
 
-    // 右键点击笔记
-    const handleNoteContextMenu = (e: React.MouseEvent, noteId: string) => {
-        e.preventDefault()
-        setContextNoteId(noteId)
-        setContextMenuPosition({ x: e.clientX, y: e.clientY })
-        setContextMenuVisible(true)
+    setNotes((prev) => prev.filter((note) => note.id !== noteId))
+
+    if (noteId === selectedNoteId) {
+      const next = filteredNotes.find((note) => note.id !== noteId)
+      setSelectedNoteId(next?.id || null)
+    }
+  }
+
+  const confirmCreateFolder = async (name: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName) return
+
+    const { data, error } = await supabase
+      .from('folders')
+      .insert({ name: trimmedName })
+      .select()
+      .single()
+
+    if (error || !data) {
+      console.error(error)
+      return
     }
 
-    // 移动笔记到指定文件夹
-    const moveNoteToFolder = async (folderId: string | null) => {
-        if (!contextNoteId) return
-        const { error } = await supabase
-            .from('notes')
-            .update({ folder_id: folderId })
-            .eq('id', contextNoteId)
-        if (error) {
-            console.error('Failed to move note', error)
-            alert('Failed to move note')
-        } else {
-            // 更新本地状态
-            setNotes((ns) =>
-                ns.map((n) =>
-                    n.id === contextNoteId ? { ...n, folder_id: folderId } : n
-                )
-            )
-            // 如果移动的笔记是当前选中，更新 selectedFolder 以同步过滤
-            if (contextNoteId === selectedNoteId) {
-                setSelectedFolder(folderId)
-            }
-        }
-        setContextMenuVisible(false)
+    setFolders((prev) => [...prev, data])
+    setSelectedFolder(data.id)
+  }
+
+  const handleDeleteFolder = async (folderId: string) => {
+    if (!confirm('Delete this folder and all its notes?')) return
+
+    await supabase
+      .from('notes')
+      .update({ folder_id: null })
+      .eq('folder_id', folderId)
+
+    const { error } = await supabase.from('folders').delete().eq('id', folderId)
+
+    if (error) {
+      console.error(error)
+      return
     }
 
-    // 关闭菜单，监听点击页面空白处
-    useEffect(() => {
-        const handleClickOutside = () => {
-            if (contextMenuVisible) setContextMenuVisible(false)
-        }
-        window.addEventListener('click', handleClickOutside)
-        window.addEventListener('scroll', handleClickOutside)
-        return () => {
-            window.removeEventListener('click', handleClickOutside)
-            window.removeEventListener('scroll', handleClickOutside)
-        }
-    }, [contextMenuVisible])
+    setFolders((prev) => prev.filter((folder) => folder.id !== folderId))
 
-    if (loading) {
-        return (
-            <div className="h-screen bg-gray-50 p-4 space-y-3">
-                {[1, 2, 3, 4].map((i) => (
-                    <div
-                        key={i}
-                        className="animate-pulse bg-white rounded-xl p-4 shadow-sm border"
-                    >
-                        <div className="h-5 w-1/2 bg-gray-200 rounded mb-2" />
-                        <div className="h-4 w-3/4 bg-gray-200 rounded mb-2" />
-                        <div className="h-3 w-1/3 bg-gray-200 rounded" />
-                    </div>
-                ))}
-            </div>
-        )
+    if (selectedFolder === folderId) {
+      setSelectedFolder(null)
+    }
+  }
+
+  const handleNoteContextMenu = (e: React.MouseEvent, noteId: string) => {
+    e.preventDefault()
+    setContextNoteId(noteId)
+    setContextMenuPosition({ x: e.clientX, y: e.clientY })
+    setContextMenuVisible(true)
+  }
+
+  const moveNoteToFolder = async (folderId: string | null) => {
+    if (!contextNoteId) return
+
+    const { error } = await supabase
+      .from('notes')
+      .update({ folder_id: folderId })
+      .eq('id', contextNoteId)
+
+    if (error) {
+      console.error('Failed to move note', error)
+      alert('Failed to move note')
+      return
     }
 
-    return (
-        <div className="flex h-screen flex-col">
-            <DesktopNavbar
-                folders={folders}
-                selectedFolder={selectedFolder}
-                onSelectFolder={setSelectedFolder}
-                onDeleteFolder={handleDeleteFolder}
-                onCreateFolder={confirmCreateFolder}
-                onCreateNote={handleCreateNote}
-                onSearch={(query) => setSearchTerm(query)}
-                searchValue={searchTerm}
-                setSearchValue={setSearchTerm}
-                title="Explore Notes"
-            />
-
-            <div className="mt-14 flex flex-1 overflow-hidden bg-zinc-50">
-                <aside className="flex-shrink-0 w-[272px] overflow-y-auto overscroll-contain border-r border-gray-200 bg-zinc-50">
-                    <div className="min-h-full px-3 py-4">
-                        {filteredNotes.length === 0 ? (
-                            <p className="text-sm text-gray-500">No matching notes</p>
-                        ) : (
-                            filteredNotes.map((note) => (
-                                <div
-                                    key={note.id}
-                                    className="mb-3"
-                                    onContextMenu={(e) => handleNoteContextMenu(e, note.id)}
-                                >
-                                    <NoteCard
-                                        note={note}
-                                        isActive={note.id === selectedNoteId}
-                                        onSelect={setSelectedNoteId}
-                                        onTogglePin={() => {
-                                            setNotes((p) =>
-                                                [...p]
-                                                    .map((n) =>
-                                                        n.id === note.id ? { ...n, is_pinned: !n.is_pinned } : n
-                                                    )
-                                                    .sort((a, b) =>
-                                                        a.is_pinned === b.is_pinned
-                                                            ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                                                            : b.is_pinned
-                                                                ? 1
-                                                                : -1
-                                                    )
-                                            )
-                                        }}
-                                    />
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </aside>
-
-                <main className="flex-1 overflow-y-auto bg-white">
-                    <div className="px-6 py-6">
-                        {selectedNoteId ? (
-                            <NoteDetailEditor
-                                id={selectedNoteId}
-                                folders={folders}
-                                selectedFolder={selectedFolder}
-                                onMoveFolder={(newId) => {
-                                    setNotes((ns) =>
-                                        ns.map((n) =>
-                                            n.id === selectedNoteId ? { ...n, folder_id: newId } : n
-                                        )
-                                    )
-                                    setSelectedFolder(newId)
-                                    router.replace(`/explore?selected=${selectedNoteId}`)
-                                }}
-                                onUpdate={({ title, excerpt }) =>
-                                    setNotes((ns) =>
-                                        ns.map((n) =>
-                                            n.id === selectedNoteId ? { ...n, title, excerpt } : n
-                                        )
-                                    )
-                                }
-                                onDelete={handleDelete}
-                            />
-                        ) : (
-                            <p className="text-gray-500">Select or create a note</p>
-                        )}
-                    </div>
-                </main>
-            </div>
-
-            {contextMenuVisible && (
-                <ul
-                    className="absolute bg-white shadow-md rounded border border-gray-300"
-                    style={{
-                        top: contextMenuPosition.y,
-                        left: contextMenuPosition.x,
-                        zIndex: 10000,
-                        width: 200,
-                    }}
-                    onContextMenu={(e) => e.preventDefault()}
-                >
-                    <li
-                        className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                        onClick={() => moveNoteToFolder(null)}
-                    >
-                        No Folder
-                    </li>
-                    {folders.map((folder) => (
-                        <li
-                            key={folder.id}
-                            className="px-4 py-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => moveNoteToFolder(folder.id)}
-                        >
-                            {folder.name}
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
+    setNotes((prev) =>
+      prev.map((note) =>
+        note.id === contextNoteId ? { ...note, folder_id: folderId } : note
+      )
     )
+
+    if (contextNoteId === selectedNoteId) {
+      setSelectedFolder(folderId)
+    }
+
+    setContextMenuVisible(false)
+  }
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenuVisible) {
+        setContextMenuVisible(false)
+      }
+    }
+
+    window.addEventListener('click', handleClickOutside)
+    window.addEventListener('scroll', handleClickOutside)
+
+    return () => {
+      window.removeEventListener('click', handleClickOutside)
+      window.removeEventListener('scroll', handleClickOutside)
+    }
+  }, [contextMenuVisible])
+
+  if (loading) {
+    return (
+      <div className="h-screen space-y-3 bg-zinc-50 p-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="animate-pulse rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
+          >
+            <div className="mb-2 h-5 w-1/2 rounded bg-zinc-200" />
+            <div className="mb-2 h-4 w-3/4 rounded bg-zinc-100" />
+            <div className="h-3 w-1/3 rounded bg-zinc-100" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-screen flex-col">
+      <DesktopNavbar
+        folders={folders}
+        selectedFolder={selectedFolder}
+        onSelectFolder={setSelectedFolder}
+        onDeleteFolder={handleDeleteFolder}
+        onCreateFolder={confirmCreateFolder}
+        onCreateNote={handleCreateNote}
+        onSearch={setSearchTerm}
+        searchValue={searchTerm}
+        setSearchValue={setSearchTerm}
+        title="Editor"
+      />
+
+      <div className="mt-14 flex flex-1 overflow-hidden bg-zinc-50">
+        <ExploreNoteList
+          notes={filteredNotes}
+          selectedNoteId={selectedNoteId}
+          onSelectNote={setSelectedNoteId}
+          onNoteContextMenu={handleNoteContextMenu}
+          onTogglePin={(noteId) => {
+            setNotes((prev) =>
+              sortNotesByPinnedAndDate(
+                prev.map((note) =>
+                  note.id === noteId
+                    ? { ...note, is_pinned: !note.is_pinned }
+                    : note
+                )
+              )
+            )
+          }}
+        />
+
+        <NoteWorkspace
+          selectedNoteId={selectedNoteId}
+          onUpdate={({ title, excerpt }) =>
+            setNotes((prev) =>
+              prev.map((note) =>
+                note.id === selectedNoteId ? { ...note, title, excerpt } : note
+              )
+            )
+          }
+          onDelete={handleDelete}
+        />
+      </div>
+
+      {contextMenuVisible && (
+        <ul
+          className="absolute w-[200px] rounded-xl border border-zinc-200 bg-white p-1 shadow-lg"
+          style={{
+            top: contextMenuPosition.y,
+            left: contextMenuPosition.x,
+            zIndex: 10000,
+          }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <li
+            className="cursor-pointer rounded-md px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100"
+            onClick={() => moveNoteToFolder(null)}
+          >
+            No Folder
+          </li>
+
+          {folders.map((folder) => (
+            <li
+              key={folder.id}
+              className="cursor-pointer rounded-md px-3 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100"
+              onClick={() => moveNoteToFolder(folder.id)}
+            >
+              {folder.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
 }

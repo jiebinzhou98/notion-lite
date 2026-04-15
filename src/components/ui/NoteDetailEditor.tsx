@@ -1,18 +1,28 @@
 'use client'
 
-import { useEffect, useRef, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { useEditor, EditorContent, JSONContent } from "@tiptap/react"
-import StarterKit from "@tiptap/starter-kit"
-import { useDebounce } from "@/lib/useDebounce"
-import { Trash2, Bold, Italic, Download } from "lucide-react"
-import { LineHeight } from "@/lib/tiptap-extensions/LineHeight"
+import { useEffect, useRef, useState } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useEditor, EditorContent, JSONContent } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { useDebounce } from '@/lib/useDebounce'
+import Placeholder from '@tiptap/extension-placeholder'
 import Highlight from '@tiptap/extension-highlight'
-import { Eraser, List, Type, AlignJustify, Highlighter, ChevronDown, ListOrdered } from "lucide-react"
-import { TextStyleExtended } from "@/lib/tiptap-extensions/FontSize"
-import Placeholder from "@tiptap/extension-placeholder"
+import { LineHeight } from '@/lib/tiptap-extensions/LineHeight'
+import { TextStyleExtended } from '@/lib/tiptap-extensions/FontSize'
+import {
+  Trash2,
+  Bold,
+  Italic,
+  Download,
+  Eraser,
+  List,
+  Type,
+  AlignJustify,
+  Highlighter,
+  ChevronDown,
+  ListOrdered,
+} from 'lucide-react'
 
-// 扩展 Commands 接口，支持 setLineHeight
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     setLineHeight: {
@@ -25,46 +35,46 @@ declare module '@tiptap/core' {
   }
 }
 
-// 新增 hook 判断是否手机端
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
+
   useEffect(() => {
     function check() {
       setIsMobile(window.innerWidth <= 768)
     }
+
     check()
-    window.addEventListener("resize", check)
-    return () => window.removeEventListener("resize", check)
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
   }, [])
+
   return isMobile
 }
 
 export default function NoteDetailEditor({
   id,
-  folders,
-  selectedFolder,
-  onMoveFolder,
   onUpdate,
   onDelete,
 }: {
   id: string
-  folders: { id: string; name: string }[]
-  selectedFolder: string | null
-  onMoveFolder: (newFolderId: string | null) => void
   onUpdate?: (payload: { title: string; excerpt: string }) => void
   onDelete?: (id: string) => void
 }) {
-
-  const [title, setTitle] = useState("")
+  const [title, setTitle] = useState('')
   const [initialContent, setInitialContent] = useState<JSONContent | null>(null)
   const [latestContent, setLatestContent] = useState<JSONContent | null>(null)
-  const [savingStatus, setSavingStatus] = useState("")
+  const [savingStatus, setSavingStatus] = useState('')
+  const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false)
+
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
+
   const extractExcerpt = (json: JSONContent | null) =>
-    json?.content?.[0]?.content?.[0]?.text || ""
+    json?.content?.[0]?.content?.[0]?.text || ''
 
   const fallbackDoc: JSONContent = {
-    type: "doc",
-    content: [{ type: "paragraph" }],
+    type: 'doc',
+    content: [{ type: 'paragraph' }],
   }
 
   const fontSizes = [12, 14, 16, 18, 20, 22, 24]
@@ -75,38 +85,41 @@ export default function NoteDetailEditor({
     { color: '#a5d6a7', label: 'Green' },
   ]
 
-  const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
-    function handleClickOutSide(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setHighlightDropdownOpen(false);
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setHighlightDropdownOpen(false)
       }
     }
-    document.addEventListener("mousedown", handleClickOutSide);
+
+    document.addEventListener('mousedown', handleClickOutside)
     return () => {
-      document.removeEventListener("mousedown", handleClickOutSide)
+      document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
 
-  const isValidDoc = initialContent?.type === "doc" &&
+  const isValidDoc =
+    initialContent?.type === 'doc' &&
     Array.isArray(initialContent.content) &&
     initialContent.content.length > 0
+
   const editor = useEditor(
     {
       extensions: [
         StarterKit.configure({
           bulletList: {
             HTMLAttributes: {
-              class: 'list-disc pl-4'
-            }
+              class: 'list-disc pl-4',
+            },
           },
           orderedList: {
             HTMLAttributes: {
-              class: 'list-decimal ml-4'
-            }
-          }
+              class: 'list-decimal ml-4',
+            },
+          },
         }),
         LineHeight,
         Highlight.configure({
@@ -114,8 +127,8 @@ export default function NoteDetailEditor({
         }),
         TextStyleExtended,
         Placeholder.configure({
-          placeholder: "Start writing...",
-          emptyEditorClass: "is-editor-empty",
+          placeholder: 'Start writing...',
+          emptyEditorClass: 'is-editor-empty',
         }),
       ],
       content: isValidDoc ? initialContent : fallbackDoc,
@@ -124,212 +137,226 @@ export default function NoteDetailEditor({
       onUpdate({ editor }) {
         const json = editor.getJSON()
         setLatestContent(json)
-        setSavingStatus("Saving...")
+        setSavingStatus('Saving...')
       },
     },
     [initialContent]
   )
+
   const currentFontSize = editor?.getAttributes('textStyle').fontSize || ''
   const currentLineHeight = editor?.getAttributes('paragraph').lineHeight || ''
-  const currentHighlightColor = editor?.getAttributes('highligh').color || null
+  const currentHighlightColor = editor?.getAttributes('highlight').color || null
 
-  // 移动文件夹
-  const handleFolderChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newId = e.target.value || null
-    const { error } = await supabase
-      .from("notes")
-      .update({ folder_id: newId })
-      .eq("id", id)
-    if (error) {
-      console.error("Move folder failed", error)
-      return
-    }
-    onMoveFolder(newId)
-  }
-
-  // 导出 HTML
   function handleDownloadAsHtml() {
     if (!editor) return
+
     const html = editor.getHTML()
     const full = `
 <!doctype html>
-<html><head><meta charset="utf-8"><title>${title || "note"}</title></head>
-<body><h1>${title || "Untitled"}</h1>${html}</body></html>`
-    const blob = new Blob([full], { type: "text/html" })
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>${title || 'note'}</title>
+  </head>
+  <body>
+    <h1>${title || 'Untitled'}</h1>
+    ${html}
+  </body>
+</html>`
+
+    const blob = new Blob([full], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
+    const a = document.createElement('a')
     a.href = url
-    a.download = `${(title || "note").replace(/\s+/g, "_")}.html`
+    a.download = `${(title || 'note').replace(/\s+/g, '_')}.html`
     a.click()
     URL.revokeObjectURL(url)
   }
 
-  // 自动保存标题
   useDebounce(
     () => {
       if (!title.trim()) return
+
         ; (async () => {
           try {
             const { error } = await supabase
-              .from("notes")
+              .from('notes')
               .update({ title })
-              .eq("id", id)
+              .eq('id', id)
+
             if (error) throw error
-            setSavingStatus("Saved!")
+            setSavingStatus('Saved')
           } catch (e) {
-            console.error("Failed saving title", e)
+            console.error('Failed saving title', e)
           }
         })()
     },
     1000,
-    [title]
+    [title, id]
   )
 
-  // 自动保存内容（带空节点过滤 + 日志 + 错误捕获）
   useDebounce(
     () => {
       if (!latestContent) return
 
-      // 跳过完全空文档
-      // const paras = latestContent.content?.[0]?.content
-      // if (!paras || paras.length === 0) {
-      //   console.warn("Skip saving empty document")
-      //   return
-      // }
+        ; (async () => {
+          try {
+            const { error } = await supabase
+              .from('notes')
+              .update({ content: latestContent })
+              .eq('id', id)
 
-      ; (async () => {
-        console.log("Saving content to Supabase:", latestContent)
-        try {
-          const { error } = await supabase
-            .from("notes")
-            .update({ content: latestContent })
-            .eq("id", id)
-          if (error) throw error
-          setSavingStatus("Saved!")
-        } catch (e) {
-          console.error("Failed saving content", e)
-        }
-      })()
+            if (error) throw error
+            setSavingStatus('Saved')
+          } catch (e) {
+            console.error('Failed saving content', e)
+          }
+        })()
     },
     1500,
     [latestContent, id]
   )
 
-  // 通知父组件更新 title/excerpt
   useDebounce(
     () => {
-      if (latestContent && title && onUpdate) {
-        onUpdate({ title, excerpt: extractExcerpt(latestContent) })
+      if (latestContent && onUpdate) {
+        onUpdate({
+          title,
+          excerpt: extractExcerpt(latestContent),
+        })
       }
     },
     1000,
-    [title, latestContent]
+    [title, latestContent, onUpdate]
   )
 
-  // 初始载入
-useEffect(() => {
-  if (!id) return
+  useEffect(() => {
+    if (!id) return
 
-  let isCancelled = false
+    let isCancelled = false
 
-  async function fetchNote() {
-    const { data, error } = await supabase
-      .from("notes")
-      .select("title, content")
-      .eq("id", id)
-      .maybeSingle()
+    async function fetchNote() {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('title, content, created_at')
+        .eq('id', id)
+        .maybeSingle()
 
-    if (isCancelled) return
+      if (isCancelled) return
 
-    if (error) {
-      console.error("Failed fetching note:", error)
-      return
+      if (error) {
+        console.error('Failed fetching note:', error)
+        return
+      }
+
+      if (!data) return
+
+      setTitle(data.title ?? '')
+      setInitialContent(data.content ?? null)
     }
 
-    if (!data) {
-      return
+    fetchNote()
+
+    return () => {
+      isCancelled = true
     }
-
-    setTitle(data.title ?? "")
-    setInitialContent(data.content ?? null)
-  }
-
-  fetchNote()
-
-  return () => {
-    isCancelled = true
-  }
-}, [id])
-
-  // 判断是否手机端
-  const isMobile = useIsMobile()
+  }, [id])
 
   return (
-    <main className="flex flex-col h-full p-6 bg-white/90 backdrop-blur-sm rounded-2xl">
+    <main className="relative flex min-h-full flex-col bg-transparent">
       {!editor ? (
-        <p className="text-gray-400">Loading editor...</p>
+        <div className="py-16 text-xs text-zinc-400">Loading editor...</div>
       ) : (
         <>
-          {/* 标题 + 下拉 + 删除 */}
-          <div
-            className={`flex items-center justify-between border-b pb-2 ${isMobile ? "flex-wrap gap-2" : ""
-              }`}
-          >
-            <input
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value)
-                setSavingStatus("Saving...")
-              }}
-              placeholder="Untitled"
-              className={`flex-1 text-4xl font-semibold outline-none bg-transparent ${isMobile ? "max-w-[60%]" : ""
-                }`}
-            />
+          <div className="mx-auto w-full max-w-4xl">
+            <div className="flex items-center justify-between text-[11px] text-zinc-400">
+              <span>
+                {savingStatus === 'Saved' ? 'Saved just now' : savingStatus || 'Not saved yet'}
+              </span>
 
-            {/* Delete */}
-            <button
-              onClick={() => onDelete?.(id)}
-              className="p-1 text-red-500 hover:bg-red-50 rounded transition ml-2"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+              <button
+                onClick={() => onDelete?.(id)}
+                className="rounded-md p-1 text-zinc-400 transition hover:bg-red-50 hover:text-red-500"
+                aria-label="Delete note"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-3">
+              <input
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value)
+                  setSavingStatus('Saving...')
+                }}
+                placeholder="Untitled"
+                className="w-full bg-transparent text-[28px] font-medium tracking-tight text-zinc-900 outline-none placeholder:text-zinc-300 md:text-[32px]"
+              />
+            </div>
+
+            <div className="mt-4 min-h-[70vh] pb-32">
+              <EditorContent
+                editor={editor}
+                className="prose prose-zinc max-w-none text-[17px] leading-8 focus-within:outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Tab' && editor) {
+                    e.preventDefault()
+                    editor.chain().focus().insertContent('    ').run()
+                  }
+                }}
+              />
+            </div>
           </div>
 
-          {/* 仅桌面端显示工具栏 */}
           {!isMobile && (
-            <div className="sticky top-0 z-10 bg-white border-b pb-2 flex items-center justify-between gap-3 h-12 px-3">
-              <div className="flex gap-3">
+            <div
+              className="pointer-events-none fixed bottom-8 z-30"
+              style={{
+                left: 'calc(272px + ((100vw - 272px) / 2))',
+                transform: 'translateX(-50%)',
+              }}
+            >
+              <div className="pointer-events-auto flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
                 <button
                   onClick={() => editor.chain().focus().toggleBold().run()}
-                  className={`p-1 rounded ${editor.isActive("bold") ? "bg-gray-200" : ""
+                  className={`rounded-md p-2 transition hover:bg-zinc-100 ${editor.isActive('bold')
+                      ? 'bg-zinc-100 text-zinc-900'
+                      : 'text-zinc-500'
                     }`}
                 >
-                  <Bold className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => editor.chain().focus().toggleItalic().run()}
-                  className={`p-1 rounded ${editor.isActive("italic") ? "bg-gray-200" : ""
-                    }`}
-                >
-                  <Italic className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleDownloadAsHtml}
-                  className="p-1 rounded hover:bg-gray-200 transition"
-                >
-                  <Download className="w-5 h-5" />
+                  <Bold className="h-4 w-4" />
                 </button>
 
-                <div className="flex items-center space-x-1 border border-gray-300 rounded px-2 py-1 hover:border-indigo-400 cursor-pointer">
-                  <AlignJustify className="w-4 h-4 text-gray-600" />
+                <button
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  className={`rounded-md p-2 transition hover:bg-zinc-100 ${editor.isActive('italic')
+                      ? 'bg-zinc-100 text-zinc-900'
+                      : 'text-zinc-500'
+                    }`}
+                >
+                  <Italic className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={handleDownloadAsHtml}
+                  className="rounded-md p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+
+                <div className="h-6 w-px bg-zinc-200" />
+
+                <div className="flex items-center gap-1 rounded-md px-2 py-1">
+                  <AlignJustify className="h-4 w-4 text-zinc-500" />
                   <select
                     value={currentLineHeight}
                     onChange={(e) =>
                       editor?.chain().focus().setLineHeight(e.target.value).run()
                     }
-                    className="bg-transparent border-none outline-none text-sm cursor-pointer"
+                    className="bg-transparent text-sm text-zinc-600 outline-none"
                   >
-                    <option value="">Line Height</option>
+                    <option value="">Line</option>
                     {lineHeights.map((lh) => (
                       <option key={lh} value={lh}>
                         {lh}
@@ -337,130 +364,98 @@ useEffect(() => {
                     ))}
                   </select>
                 </div>
-                {/* 高亮颜色 Dropdown */}
-                <div ref={dropdownRef} className="relative inline-block text-left">
+
+                <div ref={dropdownRef} className="relative">
                   <button
-                    onClick={() =>
-                      setHighlightDropdownOpen(!highlightDropdownOpen)
-                    }
-                    className={`inline-flex items-center gap-1 px-2 py-1 rounded border border-gray-300 hover:border-indigo-400 ${currentHighlightColor ? "bg-gray-200" : "bg-white"
-                      }`}
-                    title={
-                      currentHighlightColor
-                        ? `Highlight color: ${currentHighlightColor}`
-                        : "Highlight"
-                    }
+                    onClick={() => setHighlightDropdownOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-1 rounded-md p-2 text-zinc-600 transition hover:bg-zinc-100"
+                    title="Highlight"
                   >
                     <Highlighter
-                      className="w-5 h-5"
-                      style={{ color: currentHighlightColor || "black" }}
+                      className="h-4 w-4"
+                      style={{ color: currentHighlightColor || 'currentColor' }}
                     />
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="h-4 w-4" />
                   </button>
 
                   {highlightDropdownOpen && (
-                    <div className="absolute mt-1 w-32 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div className="py-1">
-                        {highlightColors.map(({ color, label }) => (
-                          <button
-                            key={color}
-                            onClick={() => {
-                              editor
-                                .chain()
-                                .focus()
-                                .toggleHighlight({ color })
-                                .run()
-                              setHighlightDropdownOpen(false)
-                            }}
-                            className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-gray-100"
-                          >
-                            <Highlighter
-                              className="w-5 h-5"
-                              style={{ color }}
-                            />
-                            <span>{label}</span>
-                          </button>
-                        ))}
-
+                    <div className="absolute bottom-full left-0 z-50 mb-2 w-36 rounded-lg border border-zinc-200 bg-white p-1 shadow-lg">
+                      {highlightColors.map(({ color, label }) => (
                         <button
+                          key={color}
                           onClick={() => {
-                            editor.chain().focus().unsetHighlight().run()
+                            editor.chain().focus().toggleHighlight({ color }).run()
                             setHighlightDropdownOpen(false)
                           }}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100"
                         >
-                          <Highlighter
-                            className="w-5 h-5 text-red-600"
-                          />
-                          <span>Remove Highlight</span>
+                          <Highlighter className="h-4 w-4" style={{ color }} />
+                          <span>{label}</span>
                         </button>
-                      </div>
+                      ))}
+
+                      <button
+                        onClick={() => {
+                          editor.chain().focus().unsetHighlight().run()
+                          setHighlightDropdownOpen(false)
+                        }}
+                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-zinc-100"
+                      >
+                        <Highlighter className="h-4 w-4" />
+                        <span>Remove</span>
+                      </button>
                     </div>
                   )}
                 </div>
 
-                {/* 橡皮擦按钮，清除高亮 */}
                 <button
                   onClick={() => editor.chain().focus().unsetHighlight().run()}
                   title="Remove highlight"
-                  className="p-1 rounded hover:bg-gray-200"
+                  className="rounded-md p-2 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900"
                 >
-                  <Eraser className="w-5 h-5 text-gray-500" />
+                  <Eraser className="h-4 w-4" />
                 </button>
 
-                {/*字体大小*/}
-
-                <div className="flex items-center space-x-1 border border-gray-300 rounded px-2 py-1 hover:border-indigo-400 cursor-pointer">
-                  <Type className="w-4 h-4 text-gray-600" />
+                <div className="flex items-center gap-1 rounded-md px-2 py-1">
+                  <Type className="h-4 w-4 text-zinc-500" />
                   <select
                     value={currentFontSize}
                     onChange={(e) =>
                       editor?.chain().focus().setFontSize(e.target.value).run()
                     }
-                    className="bg-transparent border-none outline-none text-sm cursor-pointer"
+                    className="bg-transparent text-sm text-zinc-600 outline-none"
                   >
                     <option value="">Size</option>
                     {fontSizes.map((size) => (
-                      <option
-                        key={size}
-                        value={size.toString()}
-                        style={{ fontSize: `${size}px` }}
-                      >
+                      <option key={size} value={size.toString()}>
                         {size}px
                       </option>
                     ))}
                   </select>
                 </div>
+
                 <button
                   onClick={() => editor.chain().focus().toggleBulletList().run()}
-                  className={editor.isActive("bulletList") ? "is-active" : ""}
+                  className={`rounded-md p-2 transition hover:bg-zinc-100 ${editor.isActive('bulletList')
+                      ? 'bg-zinc-100 text-zinc-900'
+                      : 'text-zinc-500'
+                    }`}
                 >
-                  <List className="w-5 h-5" />
+                  <List className="h-4 w-4" />
                 </button>
+
                 <button
                   onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                  className={editor.isActive("orderedList") ? "is-active" : ""}
-                  title="Toggle Ordered List"
+                  className={`rounded-md p-2 transition hover:bg-zinc-100 ${editor.isActive('orderedList')
+                      ? 'bg-zinc-100 text-zinc-900'
+                      : 'text-zinc-500'
+                    }`}
                 >
-                  <ListOrdered className="h-5 w-5" />
+                  <ListOrdered className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-xs text-gray-500">{savingStatus}</p>
             </div>
           )}
-
-          {/* 编辑区 */}
-          <div className="flex-1 overflow-y-auto pt-4 pb-20 prose prose-lg min-h-[60vh] focus-within:outline-none">
-            <EditorContent
-              editor={editor}
-              onKeyDown={(e) => {
-                if (e.key === "Tab" && editor) {
-                  e.preventDefault()
-                  editor.chain().focus().insertContent("    ").run()
-                }
-              }}
-            />
-          </div>
         </>
       )}
     </main>

@@ -1,16 +1,9 @@
 'use client'
 
-import { supabase } from "@/lib/supabase"
-import { PinIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
-
-export type NoteSummary = {
-  id: string
-  title: string
-  created_at: string
-  excerpt?: string
-  is_pinned?: boolean
-}
+import { supabase } from '@/lib/supabase'
+import { PinIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { NoteSummary } from '@/types/note'
 
 export default function NoteCard({
   note,
@@ -40,49 +33,54 @@ export default function NoteCard({
     const newPinned = !note.is_pinned
 
     const { error } = await supabase
-      .from("notes")
+      .from('notes')
       .update({ is_pinned: newPinned })
-      .eq("id", note.id)
+      .eq('id', note.id)
 
     if (!error) {
       onTogglePin?.()
     } else {
-      console.error("Failed to update pin:", error)
+      console.error('Failed to update pin:', error)
     }
   }
 
   return (
     <div
       onClick={handleClick}
-      className={`group relative cursor-pointer rounded-2xl border p-4 transition-all duration-200
-        ${
-          isActive
-            ? "border-zinc-300 bg-zinc-100 shadow-none ring-1 ring-zinc-200"
-            : "border-zinc-200 bg-white shadow-sm hover:border-zinc-300 hover:bg-zinc-50 hover:shadow-sm"
-        }`}
+      className={`group relative cursor-pointer rounded-xl px-3 py-3 transition-all duration-150 ${
+        isActive
+          ? 'bg-white ring-1 ring-zinc-200'
+          : 'bg-transparent hover:bg-white/80'
+      }`}
     >
       <button
         onClick={togglePin}
-        className="absolute right-3 top-3 rounded-md p-1 text-zinc-400 transition hover:bg-zinc-200/60 hover:text-zinc-700"
-        aria-label={note.is_pinned ? "Unpin note" : "Pin note"}
+        className="absolute right-2 top-2 rounded-md p-1 text-zinc-400 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-700 group-hover:opacity-100"
+        aria-label={note.is_pinned ? 'Unpin note' : 'Pin note'}
       >
         <PinIcon
           className={`h-4 w-4 ${
             note.is_pinned
-              ? "fill-red-500 text-red-500"
-              : "fill-transparent text-zinc-400"
+              ? 'fill-zinc-700 text-zinc-700'
+              : 'fill-transparent text-zinc-400'
           }`}
         />
       </button>
 
-      <div className="pr-8">
-        <h2 className="truncate text-lg font-semibold text-zinc-900">
-          {note.title || "Untitled"}
-        </h2>
+      <div className="pr-7">
+        <div className="flex items-start justify-between gap-3">
+          <h2
+            className={`truncate text-[15px] leading-6 ${
+              isActive ? 'font-semibold text-zinc-900' : 'font-medium text-zinc-800'
+            }`}
+          >
+            {note.title || 'Untitled'}
+          </h2>
+        </div>
 
-        <div className="mt-2 min-h-[40px]">
+        <div className="mt-1 min-h-[38px]">
           {note.excerpt ? (
-            <p className="line-clamp-2 text-sm leading-6 text-zinc-500">
+            <p className="line-clamp-2 text-sm leading-5 text-zinc-500">
               {note.excerpt}
             </p>
           ) : (
@@ -90,8 +88,17 @@ export default function NoteCard({
           )}
         </div>
 
-        <div className="mt-4 text-right text-xs text-zinc-400">
-          {new Date(note.created_at).toLocaleDateString()}
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[11px] uppercase tracking-wide text-zinc-400">
+            {note.is_pinned ? 'Pinned' : ''}
+          </span>
+
+          <span className="text-[11px] text-zinc-400">
+            {new Date(note.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            })}
+          </span>
         </div>
       </div>
     </div>

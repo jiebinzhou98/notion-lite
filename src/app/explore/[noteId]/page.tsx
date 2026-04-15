@@ -237,9 +237,6 @@ export default function ExploreMobile() {
         <main className="flex-1 overflow-y-auto p-4 bg-gray-50">
           <NoteDetailEditor
             id={Array.isArray(noteId) ? noteId[0] : noteId}
-            folders={folders}
-            selectedFolder={selectedFolder}
-            onMoveFolder={handleMoveFolder}
             onUpdate={({ title: newTitle }) => setTitle(newTitle)}
             onDelete={handleDelete}
           />
